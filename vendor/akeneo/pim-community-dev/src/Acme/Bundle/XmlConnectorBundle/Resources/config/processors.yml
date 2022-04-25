@@ -1,0 +1,10 @@
+parameters:
+    acme.connector.processor.custom.class: Acme\Bundle\XmlConnectorBundle\Connector\Processor\CustomProcessor
+
+services:
+    acme.connector.processor.custom:
+        class: '%acme.connector.processor.custom.class%'
+        arguments:
+            - '@pim_comment.builder.comment'
+            - '@pim_comment.saver.comment'
+            - '@pim_user.repository.user'

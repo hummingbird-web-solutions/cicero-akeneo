@@ -36,6 +36,7 @@ class XmlProductReader implements
 
     public function read()
     {
+        echo "from custom reader";
         if (null === $this->xml) {
             $jobParameters = $this->stepExecution->getJobParameters();
             $filePath = $jobParameters->get('filePath');

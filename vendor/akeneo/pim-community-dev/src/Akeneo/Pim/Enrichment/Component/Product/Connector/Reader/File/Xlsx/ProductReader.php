@@ -45,6 +45,7 @@ class ProductReader extends Reader implements FileReaderInterface
      */
     public function read()
     {
+        echo "from enrichmentComponentProductConnectorReaderFileXlsxProductReader";
         $data = parent::read();
 
         if (!is_array($data) || !isset($data['values'])) {

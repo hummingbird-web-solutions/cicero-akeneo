@@ -66,6 +66,8 @@ class Reader implements FileReaderInterface, TrackableItemReaderInterface
      */
     public function read()
     {
+        // echo "hello";
+        // die;
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
         if (null === $this->fileIterator) {

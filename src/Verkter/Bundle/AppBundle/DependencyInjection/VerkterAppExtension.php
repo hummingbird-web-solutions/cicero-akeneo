@@ -24,5 +24,7 @@ class VerkterAppExtension extends Extension
         $loader->load('parameters.yml');
         $loader->load('updaters.yml');
         $loader->load('jobs.yml');
+        $loader->load('processors.yml');
+        $loader->load('steps.yml');
     }
 }

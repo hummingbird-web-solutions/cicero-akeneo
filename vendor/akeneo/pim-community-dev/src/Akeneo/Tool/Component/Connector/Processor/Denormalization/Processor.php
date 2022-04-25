@@ -60,8 +60,6 @@ class Processor extends AbstractProcessor implements ItemProcessorInterface, Ste
      */
     public function process($item)
     {
-        echo "nothing";
-        die;
         $itemIdentifier = $this->getItemIdentifier($this->repository, $item);
         $entity = $this->findOrCreateObject($itemIdentifier);
 
