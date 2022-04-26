@@ -66,45 +66,82 @@ class Reader implements FileReaderInterface, TrackableItemReaderInterface
      */
     public function read()
     {
-        // echo "hello";
-        // die;
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
         if (null === $this->fileIterator) {
             $this->fileIterator = $this->fileIteratorFactory->create($filePath, $this->options);
             $this->fileIterator->rewind();
         }
-
+        
         $this->fileIterator->next();
-
+        
         if ($this->fileIterator->valid() && null !== $this->stepExecution) {
             $this->stepExecution->incrementSummaryInfo('item_position');
         }
-
+        
         $data = $this->fileIterator->current();
-
+        
         if (null === $data) {
             return null;
         }
-
+        
         $headers = $this->fileIterator->getHeaders();
         // var_dump($headers);
         // die;
-
         $countHeaders = count($headers);
         $countData = count($data);
-
+        
         $this->checkColumnNumber($countHeaders, $countData, $data, $filePath);
-
+        
         if ($countHeaders > $countData) {
             $missingValuesCount = $countHeaders - $countData;
             $missingValues = array_fill(0, $missingValuesCount, '');
             $data = array_merge($data, $missingValues);
         }
-
+        
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
+        //custom code
+        if (isset($item['3M ID'])) {
+            $item['sku'] = $item['3M ID'];
+            unset($item['3M ID']);
+        }
+
+        if (isset($item['short_description'])){
+            $item['short_description-en_US-ecommerce'] = $item['short_description'];
+            unset($item['short_description']);
+        }
+
+        // if (isset($item['Composition - PVC'])){
+        //     $item['composition_pvc'] = $item['Composition - PVC'];
+        //     unset($item['Composition - PVC']);
+        // }
+
+        // if (isset($item['% Solids (Volume)'])){
+        //     $item['percent_solids_volume'] = $item['% Solids (Volume)'];
+        //     unset($item['% Solids (Volume)']);
+        // }
+
+        foreach(array_keys($item) as $attribute){
+            $oldAttribute = $attribute;
+            if(str_contains($attribute, " ")){
+                // echo $attribute;
+                $attribute = str_replace(' - ', '_', $attribute);
+                $attribute = str_replace(' ', '_', $attribute);
+            }
+            if(strcmp($attribute, $oldAttribute)!==0){
+                $item[$attribute] = $item[$oldAttribute];
+                unset($item[$oldAttribute]);
+            }
+        }
+        // var_dump($item);
+        // die;
+        // echo "hello3";
+        // die;
+        
         try {
+            // var_dump($this->getArrayConverterOptions());
+            // die;
             $item = $this->converter->convert($item, $this->getArrayConverterOptions());
         } catch (DataArrayConversionException $e) {
             $this->skipItemFromConversionException($item, $e);

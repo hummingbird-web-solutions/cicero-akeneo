@@ -53,6 +53,8 @@ class AttributeColumnsResolver
     {
         if (empty($this->identifierField)) {
             $this->identifierField = $this->attributeRepository->getIdentifierCode();
+            // var_dump($this->identifierField);
+            // die;
         }
 
         return $this->identifierField;

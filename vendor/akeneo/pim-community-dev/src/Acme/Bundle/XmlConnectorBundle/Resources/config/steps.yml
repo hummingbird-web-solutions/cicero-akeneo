@@ -5,7 +5,8 @@ services:
                 - 'import'
                 - '@event_dispatcher'
                 - '@akeneo_batch.job_repository'
-                - '@acme_xml_connector.reader.file.xml_product'
+                - '@pim_connector.reader.file.xlsx_product'
+                # - '@acme_xml_connector.reader.file.xml_product'
                 - '@acme.connector.processor.custom'
                 - '@pim_connector.writer.database.product'
                 - 10

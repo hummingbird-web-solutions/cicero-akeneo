@@ -13,6 +13,7 @@ class AcmeXmlConnectorExtension extends Extension
     {
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('archiving.yml');
+        $loader->load('array_converters.yml');
         $loader->load('jobs.yml');
         $loader->load('job_parameters.yml');
         $loader->load('steps.yml');

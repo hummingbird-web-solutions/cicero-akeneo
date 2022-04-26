@@ -54,7 +54,7 @@ class SimpleXmlImport implements
                         new NotBlank(['groups' => ['Execution', 'UploadExecution']]),
                         new FileExtension(
                             [
-                                'allowedExtensions' => ['xml', 'zip'],
+                                'allowedExtensions' => ['xml', 'zip', 'xlsx'],
                                 'groups'            => ['Execution', 'UploadExecution']
                             ]
                         )

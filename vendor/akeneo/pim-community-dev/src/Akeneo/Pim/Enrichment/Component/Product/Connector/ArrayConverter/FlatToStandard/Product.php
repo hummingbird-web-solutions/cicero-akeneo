@@ -252,6 +252,8 @@ class Product implements ArrayConverterInterface
                 $convertedItem = $convertedField->appendTo($convertedItem);
             } else {
                 $convertedValues[$column] = $value;
+                echo $column;
+                die;
             }
         }
 
@@ -280,6 +282,8 @@ class Product implements ArrayConverterInterface
     {
         $requiredField = $this->attrColumnsResolver->resolveIdentifierField();
         $this->fieldChecker->checkFieldsPresence($item, [$requiredField]);
+        // var_dump($requiredField);
+        // die;
         $this->validateOptionalFields($item);
         $this->validateFieldValueTypes($item);
     }
@@ -291,22 +295,30 @@ class Product implements ArrayConverterInterface
      */
     protected function validateOptionalFields(array $item): void
     {
+        // custom code
+        // var_dump(array_keys($item));
+        // die;
+        $customArray = array_keys($item);
+
         $optionalFields = array_merge(
             ['family', 'enabled', 'categories', 'groups', 'parent'],
             $this->attrColumnsResolver->resolveAttributeColumns(),
-            $this->getOptionalAssociationFields()
+            $this->getOptionalAssociationFields(),
+            $customArray //changed this line
         );
 
         // index $optionalFields by keys to improve performances
         $optionalFields = array_combine($optionalFields, $optionalFields);
         $unknownFields = [];
-
         foreach (array_keys($item) as $field) {
             if (!isset($optionalFields[$field])) {
+                // echo $field;
+                // die;
                 $unknownFields[] = $field;
             }
         }
-
+        // var_dump($unknownFields);
+        // die;
         $nonLocalizableOrScopableFields = $this->filterNonLocalizableOrScopableFields($unknownFields);
         $unknownFields = array_diff($unknownFields, $nonLocalizableOrScopableFields);
 
