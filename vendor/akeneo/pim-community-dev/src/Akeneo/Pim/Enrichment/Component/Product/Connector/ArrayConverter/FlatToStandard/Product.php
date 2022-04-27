@@ -252,8 +252,10 @@ class Product implements ArrayConverterInterface
                 $convertedItem = $convertedField->appendTo($convertedItem);
             } else {
                 $convertedValues[$column] = $value;
-                echo $column;
-                die;
+                // custom code
+                // if(!$convertedValues[$column]){
+                //     unset($convertedValues[$column]);
+                // }
             }
         }
 

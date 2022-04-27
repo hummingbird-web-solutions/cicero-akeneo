@@ -76,6 +76,8 @@ class AttributeColumnInfoExtractor
      */
     public function extractColumnInfo($fieldName)
     {
+        // var_dump($fieldName);
+        // die;
         if (
             in_array($fieldName, $this->assoColumnResolver->resolveAssociationColumns()) ||
             in_array($fieldName, $this->assoColumnResolver->resolveQuantifiedAssociationColumns())
@@ -87,7 +89,7 @@ class AttributeColumnInfoExtractor
             $explodedFieldName = explode(self::FIELD_SEPARATOR, $fieldName);
             $attributeCode = $explodedFieldName[0];
             $attribute = $this->attributeRepository->findOneByIdentifier($attributeCode);
-
+            
             if (null !== $attribute) {
                 $this->checkFieldNameTokens($attribute, $fieldName, $explodedFieldName);
                 $attributeInfo = $this->extractAttributeInfo($attribute, $explodedFieldName);
@@ -97,6 +99,8 @@ class AttributeColumnInfoExtractor
                 $this->excludedFieldNames[] = $fieldName;
             }
         }
+        // var_dump($this->fieldNameInfoCache[$fieldName]);
+        // die;
 
         return isset($this->fieldNameInfoCache[$fieldName]) ? $this->fieldNameInfoCache[$fieldName] : null;
     }

@@ -23,7 +23,7 @@ class FieldsRequirementChecker
      * @throws StructureArrayConversionException
      */
     public function checkFieldsPresence(array $item, array $fields)
-    {
+    {        
         foreach ($fields as $field) {
             if (!in_array($field, array_keys($item))) {
                 throw new StructureArrayConversionException(

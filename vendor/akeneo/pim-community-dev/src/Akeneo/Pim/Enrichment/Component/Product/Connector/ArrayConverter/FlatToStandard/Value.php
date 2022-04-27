@@ -135,7 +135,6 @@ class Value implements ArrayConverterInterface
     protected function convertValue($column, $value)
     {
         $attributeFieldInfo = $this->attrFieldExtractor->extractColumnInfo($column);
-
         if (null !== $attributeFieldInfo && isset($attributeFieldInfo['attribute'])) {
             $converter = $this->converterRegistry->getConverter($attributeFieldInfo['attribute']->getType());
 
@@ -147,10 +146,9 @@ class Value implements ArrayConverterInterface
                     )
                 );
             }
-
             return $converter->convert($attributeFieldInfo, $value);
         }
-
+        echo "hi";
         throw new \LogicException(
             sprintf('Unable to convert the given column "%s"', $column)
         );

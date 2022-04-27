@@ -103,38 +103,46 @@ class Reader implements FileReaderInterface, TrackableItemReaderInterface
 
         //custom code
         if (isset($item['3M ID'])) {
-            $item['sku'] = $item['3M ID'];
+            $item['Sku'] = $item['3M ID'];
             unset($item['3M ID']);
         }
 
         if (isset($item['short_description'])){
-            $item['short_description-en_US-ecommerce'] = $item['short_description'];
+            $item['Short_description-en_US-ecommerce'] = $item['short_description'];
             unset($item['short_description']);
         }
 
-        // if (isset($item['Composition - PVC'])){
-        //     $item['composition_pvc'] = $item['Composition - PVC'];
-        //     unset($item['Composition - PVC']);
+        // if (isset($item['Accessories'])){
+        //     $item['accessories'] = $item['Accessories'];
+        //     unset($item['Accessories']);
         // }
 
-        // if (isset($item['% Solids (Volume)'])){
-        //     $item['percent_solids_volume'] = $item['% Solids (Volume)'];
-        //     unset($item['% Solids (Volume)']);
-        // }
+        // var_dump(array_keys($item));
+        // die;
 
+        
         foreach(array_keys($item) as $attribute){
             $oldAttribute = $attribute;
             if(str_contains($attribute, " ")){
                 // echo $attribute;
                 $attribute = str_replace(' - ', '_', $attribute);
+                $attribute = str_replace('-', '_', $attribute);
                 $attribute = str_replace(' ', '_', $attribute);
             }
             if(strcmp($attribute, $oldAttribute)!==0){
-                $item[$attribute] = $item[$oldAttribute];
+                $item[strtolower($attribute)] = $item[$oldAttribute];
                 unset($item[$oldAttribute]);
             }
+            else{
+                $item[strtolower($attribute)] = $item[$attribute];
+                unset($item[$attribute]);
+            }
         }
-        // var_dump($item);
+        if (isset($item['%_solids_(volume)'])){
+            $item['percent_solids_volume'] = $item['%_solids_(volume)'];
+            unset($item['%_solids_(volume)']);
+        }
+        // var_dump(array_keys($item));
         // die;
         // echo "hello3";
         // die;
