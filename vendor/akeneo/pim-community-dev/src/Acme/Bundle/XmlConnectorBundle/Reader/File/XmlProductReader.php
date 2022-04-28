@@ -47,14 +47,6 @@ class XmlProductReader implements
 
     public function read()
     {
-        // if (null === $this->xml) {
-        //     $jobParameters = $this->stepExecution->getJobParameters();
-        //     $filePath = $jobParameters->get('filePath');
-        //     // for example purpose, we should use XML Parser to read line per line
-        //     $this->xml = simplexml_load_file($filePath, 'SimpleXMLIterator');
-        //     $this->xml->rewind();
-        // }
-
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
         if (null === $this->fileIterator) {
@@ -75,8 +67,6 @@ class XmlProductReader implements
         }
         
         $headers = $this->fileIterator->getHeaders();
-        // var_dump($headers);
-        // die;
         $countHeaders = count($headers);
         $countData = count($data);
         
@@ -89,25 +79,6 @@ class XmlProductReader implements
         }
         
         $item = array_combine($this->fileIterator->getHeaders(), $data);
-
-        // if ($data = $this->xml->current()) {
-        //     $item = [];
-        //     foreach ($data->attributes() as $attributeName => $attributeValue) {
-        //         $item[$attributeName] = (string) $attributeValue;
-        //     }
-        //     $this->xml->next();
-
-        //     if (null !== $this->stepExecution) {
-        //         $this->stepExecution->incrementSummaryInfo('item_position');
-        //     }
-
-        //     try {
-        //         $item = $this->converter->convert($item);
-        //     } catch (DataArrayConversionException $e) {
-        //         $this->skipItemFromConversionException($this->xml->current(), $e);
-        //     }
-        //     return $item;
-        // }
 
         if (isset($item['3M ID'])) {
             $item['sku'] = $item['3M ID'];
@@ -122,7 +93,6 @@ class XmlProductReader implements
         foreach(array_keys($item) as $attribute){
             $oldAttribute = $attribute;
             if(str_contains($attribute, " ")){
-                // echo $attribute;
                 $attribute = str_replace(' - ', '_', $attribute);
                 $attribute = str_replace('-', '_', $attribute);
                 $attribute = str_replace(' ', '_', $attribute);
@@ -135,19 +105,7 @@ class XmlProductReader implements
         foreach(array_keys($item) as $attribute){
             if(!$item[$attribute])
                 unset($item[$attribute]);
-            // unset($item['Adhesion']);
-            // unset($item['Adhesive']);
-            // unset($item['Adhesives']);
         }
-        // var_dump(array_keys($item));
-        // die;
-        // if (isset($item['%_solids_(volume)'])){
-        //     $item['percent_solids_volume'] = $item['%_solids_(volume)'];
-        //     unset($item['%_solids_(volume)']);
-        // }
-
-        // var_dump($item);
-        // die;
         $productInfo = "";
         foreach($item as $key => $value){
             if(!$this->attributeRepository->findBy(['code' => $key])){
@@ -157,8 +115,6 @@ class XmlProductReader implements
         }
         $item["product_info"] = $productInfo;
         try {
-            // var_dump($this->getArrayConverterOptions());
-            // die;
             $item = $this->converter->convert($item);
         } catch (DataArrayConversionException $e) {
             $this->skipItemFromConversionException($item, $e);
@@ -166,39 +122,6 @@ class XmlProductReader implements
 
         return $item;
     }
-
-    // public function read()
-    // {
-    //     if (null === $this->xml) {
-    //         $jobParameters = $this->stepExecution->getJobParameters();
-    //         $filePath = $jobParameters->get('filePath');
-    //         // for example purpose, we should use XML Parser to read line per line
-    //         $this->xml = simplexml_load_file($filePath, 'SimpleXMLIterator');
-    //         $this->xml->rewind();
-    //     }
-
-    //     if ($data = $this->xml->current()) {
-    //         $item = [];
-    //         foreach ($data->attributes() as $attributeName => $attributeValue) {
-    //             $item[$attributeName] = (string) $attributeValue;
-    //         }
-    //         $this->xml->next();
-
-    //         if (null !== $this->stepExecution) {
-    //             $this->stepExecution->incrementSummaryInfo('item_position');
-    //         }
-
-    //         try {
-    //             $item = $this->converter->convert($item);
-    //         } catch (DataArrayConversionException $e) {
-    //             $this->skipItemFromConversionException($this->xml->current(), $e);
-    //         }
-
-    //         return $item;
-    //     }
-
-    //     return null;
-    // }
 
     /**
      * {@inheritdoc}
