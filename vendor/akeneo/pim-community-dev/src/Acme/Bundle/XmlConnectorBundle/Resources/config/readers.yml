@@ -14,4 +14,5 @@ services:
         arguments:
             - '@pim_connector.array_converter.flat_to_standard.product'
             - '@pim_connector.reader.file.xlsx_iterator_factory'
+            - '@pim_catalog.repository.attribute'
             # - '@acme_xmlconnector.array_converter.flat.product'

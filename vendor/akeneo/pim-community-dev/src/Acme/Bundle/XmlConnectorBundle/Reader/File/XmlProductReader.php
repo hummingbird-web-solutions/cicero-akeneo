@@ -12,6 +12,7 @@ use Akeneo\Tool\Component\Connector\Reader\File\FileIteratorFactory;
 use Akeneo\Tool\Component\Connector\ArrayConverter\ArrayConverterInterface;
 use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
+use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
 
 class XmlProductReader implements
     ItemReaderInterface,
@@ -28,16 +29,20 @@ class XmlProductReader implements
     /** @var StepExecution */
     protected $stepExecution;
 
+    protected $attributeRepository;
+
+
     /** @var ArrayConverterInterface */
     protected $converter;
 
     /**
      * @param ArrayConverterInterface $converter
      */
-    public function __construct(ArrayConverterInterface $converter, FileIteratorFactory $fileIteratorFactory)
+    public function __construct(ArrayConverterInterface $converter, FileIteratorFactory $fileIteratorFactory, AttributeRepositoryInterface $attributeRepository)
     {
         $this->fileIteratorFactory = $fileIteratorFactory;
         $this->converter = $converter;
+        $this->attributeRepository = $attributeRepository;
     }
 
     public function read()
@@ -141,7 +146,16 @@ class XmlProductReader implements
         //     unset($item['%_solids_(volume)']);
         // }
 
-
+        // var_dump($item);
+        // die;
+        $productInfo = "";
+        foreach($item as $key => $value){
+            if(!$this->attributeRepository->findBy(['code' => $key])){
+                $productInfo = $productInfo . $key ." => " . $value;
+                unset($item[$key]);
+            }
+        }
+        $item["product_info"] = $productInfo;
         try {
             // var_dump($this->getArrayConverterOptions());
             // die;
