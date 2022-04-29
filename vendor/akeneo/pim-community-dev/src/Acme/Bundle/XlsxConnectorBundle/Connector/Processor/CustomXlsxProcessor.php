@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Acme\Bundle\XmlConnectorBundle\Connector\Processor;
+namespace Acme\Bundle\XlsxConnectorBundle\Connector\Processor;
 
 use Akeneo\Tool\Component\StorageUtils\Saver\SaverInterface;
 use Akeneo\Pim\Enrichment\Component\Comment\Builder\CommentBuilder;
@@ -11,7 +11,7 @@ use Akeneo\Pim\Enrichment\Component\Product\Connector\Processor\MassEdit\Abstrac
 use Akeneo\UserManagement\Component\Repository\UserRepositoryInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class CustomProcessor extends AbstractProcessor
+class CustomXlsxProcessor extends AbstractProcessor
 {
     protected $commentBuilder;
     protected $commentSaver;

@@ -1,8 +1,8 @@
 parameters:
-    acme.connector.processor.custom.class: Acme\Bundle\XmlConnectorBundle\Connector\Processor\CustomProcessor
+    acme.connector.processor.custom.class: Acme\Bundle\XlsxConnectorBundle\Connector\Processor\CustomXlsxProcessor
 
 services:
-    acme.connector.processor.custom:
+    acme.connector.processor.custom_xlsx:
         class: '%acme.connector.processor.custom.class%'
         arguments:
             - '@pim_comment.builder.comment'

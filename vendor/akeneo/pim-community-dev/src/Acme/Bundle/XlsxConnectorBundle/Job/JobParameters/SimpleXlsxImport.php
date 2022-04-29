@@ -1,6 +1,6 @@
 <?php
 
-namespace Acme\Bundle\XmlConnectorBundle\Job\JobParameters;
+namespace Acme\Bundle\XlsxConnectorBundle\Job\JobParameters;
 
 use Akeneo\Tool\Component\Batch\Job\JobInterface;
 use Akeneo\Tool\Component\Batch\Job\JobParameters\ConstraintCollectionProviderInterface;
@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Type;
 
-class SimpleXmlImport implements
+class SimpleXlsxImport implements
     DefaultValuesProviderInterface,
     ConstraintCollectionProviderInterface
 {
@@ -38,7 +38,8 @@ class SimpleXmlImport implements
             'groupsColumn'              => 'groups',
             'enabledComparison'         => true,
             'realTimeVersioning'        => true,
-            'invalid_items_file_format' => 'xml',
+            'invalid_items_file_format' => 'xlsx',
+            'convertVariantToSimple'    => false
         ];
     }
 
@@ -54,7 +55,7 @@ class SimpleXmlImport implements
                         new NotBlank(['groups' => ['Execution', 'UploadExecution']]),
                         new FileExtension(
                             [
-                                'allowedExtensions' => ['xml', 'zip', 'xlsx'],
+                                'allowedExtensions' => ['zip', 'xlsx'],
                                 'groups'            => ['Execution', 'UploadExecution']
                             ]
                         )
@@ -89,6 +90,9 @@ class SimpleXmlImport implements
                     ],
                     'invalid_items_file_format' => [
                         new Type('string')
+                    ],
+                    'convertVariantToSimple' => [
+                        new Type('bool')
                     ]
                 ]
             ]
@@ -100,6 +104,6 @@ class SimpleXmlImport implements
      */
     public function supports(JobInterface $job)
     {
-        return $job->getName() === 'xml_product_import';
+        return $job->getName() === 'custom_xlsx_product_import';
     }
 }

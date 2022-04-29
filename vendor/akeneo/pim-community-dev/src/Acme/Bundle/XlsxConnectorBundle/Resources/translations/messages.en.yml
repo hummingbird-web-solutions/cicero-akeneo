@@ -1,28 +1,28 @@
-acme_xml_connector:
+acme_xlsx_connector:
     jobs:
-        xml_product_import:
-            title: Product Import XML
+        custom_xlsx_product_import:
+            title: Product Import xlsx
             import:
                 title: Product Import Step
     steps:
         product_processor.title: Product processor
         import.filePath:
             label: File path
-            help: Path of the XML file
+            help: Path of the xlsx file
 
 
 batch_jobs:
-    xml_product_import:
-        label: Product Import XML
-        import.label: Product Import XML
+    custom_xlsx_product_import:
+        label: Product Import xlsx
+        import.label: Product Import xlsx
 
 pim_import_export:
     download_archive:
-      invalid_xml: Download invalid items in XML
+      invalid_xlsx: Download invalid items in xlsx
 
 pim_connector:
     import:
-        xml:
+        xlsx:
             enabled:
                 label: Enable the product
                 help: Whether or not the imported product should be enabled

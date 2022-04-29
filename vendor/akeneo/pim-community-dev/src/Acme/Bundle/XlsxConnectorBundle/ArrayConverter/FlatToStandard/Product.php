@@ -1,6 +1,6 @@
 <?php
 
-namespace Acme\Bundle\XmlConnectorBundle\ArrayConverter\FlatToStandard;
+namespace Acme\Bundle\XlsxConnectorBundle\ArrayConverter\FlatToStandard;
 
 use Akeneo\Tool\Component\Connector\ArrayConverter\ArrayConverterInterface;
 

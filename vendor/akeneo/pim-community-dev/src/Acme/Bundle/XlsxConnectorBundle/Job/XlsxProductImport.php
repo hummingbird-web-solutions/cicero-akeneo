@@ -1,6 +1,6 @@
 <?php
 
-namespace Acme\Bundle\XmlConnectorBundle\Job\JobParameters;
+namespace Acme\Bundle\XlsxConnectorBundle\Job\JobParameters;
 
 use Akeneo\Tool\Component\Batch\Job\JobInterface;
 use Akeneo\Tool\Component\Batch\Job\JobParameters\ConstraintCollectionProviderInterface;
@@ -8,7 +8,7 @@ use Akeneo\Tool\Component\Batch\Job\JobParameters\DefaultValuesProviderInterface
 use Symfony\Component\Validator\Constraints\Collection;
 use Symfony\Component\Validator\Constraints\Url;
 
-class XmlProductImport implements
+class XlsxProductImport implements
     ConstraintCollectionProviderInterface,
     DefaultValuesProviderInterface
 {

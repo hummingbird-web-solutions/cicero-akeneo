@@ -1,0 +1,8 @@
+parameters:
+    acme_xlsxconnector.array_converter.flat.product.class: 'Acme\Bundle\XlsxConnectorBundle\ArrayConverter\FlatToStandard\Product'
+
+services:
+    acme_xlsxconnector.array_converter.flat.product:
+        class: '%acme_xlsxconnector.array_converter.flat.product.class%'
+        arguments:
+            - '@pim_connector.array_converter.flat_to_standard.product_delocalized'

@@ -1,6 +1,6 @@
 <?php
 
-namespace Acme\Bundle\XmlConnectorBundle\Reader\File;
+namespace Acme\Bundle\XlsxConnectorBundle\Reader\File;
 
 use Akeneo\Tool\Component\Batch\Item\FileInvalidItem;
 use Akeneo\Tool\Component\Batch\Item\FlushableInterface;
@@ -14,7 +14,7 @@ use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
 
-class XmlProductReader implements
+class XlsxProductReader implements
     ItemReaderInterface,
     StepExecutionAwareInterface,
     FlushableInterface
@@ -24,7 +24,7 @@ class XmlProductReader implements
     protected $fileIterator;
 
     /** @var array */
-    protected $xml;
+    protected $xlsx;
 
     /** @var StepExecution */
     protected $stepExecution;
@@ -35,14 +35,26 @@ class XmlProductReader implements
     /** @var ArrayConverterInterface */
     protected $converter;
 
+    protected $options;
+
     /**
      * @param ArrayConverterInterface $converter
      */
-    public function __construct(ArrayConverterInterface $converter, FileIteratorFactory $fileIteratorFactory, AttributeRepositoryInterface $attributeRepository)
+    public function __construct(ArrayConverterInterface $converter, FileIteratorFactory $fileIteratorFactory, AttributeRepositoryInterface $attributeRepository, array $options=[])
     {
         $this->fileIteratorFactory = $fileIteratorFactory;
         $this->converter = $converter;
         $this->attributeRepository = $attributeRepository;
+        $this->options = $options;
+    }
+
+    public function totalItems(): int
+    {
+        $jobParameters = $this->stepExecution->getJobParameters();
+        $filePath = $jobParameters->get('filePath');
+        $iterator = $this->fileIteratorFactory->create($filePath, $this->options);
+
+        return max(iterator_count($iterator) - 1, 0);
     }
 
     public function read()
@@ -50,7 +62,7 @@ class XmlProductReader implements
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
         if (null === $this->fileIterator) {
-            $this->fileIterator = $this->fileIteratorFactory->create($filePath);
+            $this->fileIterator = $this->fileIteratorFactory->create($filePath, $this->options);
             $this->fileIterator->rewind();
         }
 
@@ -108,18 +120,19 @@ class XmlProductReader implements
         }
         $productInfo = "";
         foreach($item as $key => $value){
-            if(!$this->attributeRepository->findBy(['code' => $key])){
-                $productInfo = $productInfo . $key ." => " . $value;
+            if($key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
+                $productInfo = $productInfo . $key .":" . $value.';';
                 unset($item[$key]);
             }
         }
         $item["product_info"] = $productInfo;
         try {
-            $item = $this->converter->convert($item);
+            $item = $this->converter->convert($item, $this->getArrayConverterOptions());
         } catch (DataArrayConversionException $e) {
             $this->skipItemFromConversionException($item, $e);
         }
-
+        // var_dump($item);
+        // die;
         return $item;
     }
 
@@ -128,7 +141,7 @@ class XmlProductReader implements
      */
     public function flush()
     {
-        $this->xml = null;
+        $this->fileIterator = null;
     }
 
     /**
@@ -137,6 +150,11 @@ class XmlProductReader implements
     public function setStepExecution(StepExecution $stepExecution)
     {
         $this->stepExecution = $stepExecution;
+    }
+
+    protected function getArrayConverterOptions()
+    {
+        return [];
     }
 
     /**
@@ -161,13 +179,13 @@ class XmlProductReader implements
                 $exception
             );
         }
-
-        $invalidItem = new FileInvalidItem(
-            $item,
-            $this->stepExecution->getSummaryInfo('item_position')
+        throw new InvalidItemException(
+            $exception->getMessage(),
+            new FileInvalidItem($item, ($this->stepExecution->getSummaryInfo('item_position'))),
+            [],
+            0,
+            $exception
         );
-
-        throw new InvalidItemException($exception->getMessage(), $invalidItem, [], 0, $exception);
     }
 
     protected function checkColumnNumber($countHeaders, $countData, $data, $filePath)

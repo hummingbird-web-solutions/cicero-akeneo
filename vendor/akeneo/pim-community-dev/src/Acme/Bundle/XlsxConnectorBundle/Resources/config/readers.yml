@@ -1,0 +1,18 @@
+parameters:
+    acme_xlsx_connector.reader.file.xlsx_product.class: Acme\Bundle\XlsxConnectorBundle\Reader\File\XlsxProductReader
+    acme_xlsx_connector.reader.file.file_iterator.class: Acme\Bundle\XlsxConnectorBundle\Reader\File\XlsxFileIterator
+
+services:
+    acme_xlsx_connector.reader.file.xlsx_iterator_factory:
+        class: '%pim_connector.reader.file.file_iterator_factory.class%'
+        arguments:
+            - '%acme_xlsx_connector.reader.file.file_iterator.class%'
+            - 'xlsx'
+
+    acme_xlsx_connector.reader.file.xlsx_product:
+        class: '%acme_xlsx_connector.reader.file.xlsx_product.class%'
+        arguments:
+            - '@pim_connector.array_converter.flat_to_standard.product'
+            - '@pim_connector.reader.file.xlsx_iterator_factory'
+            - '@pim_catalog.repository.attribute'
+            # - '@acme_xlsxconnector.array_converter.flat.product'

@@ -1,13 +1,13 @@
 <?php
 
-namespace Acme\Bundle\XmlConnectorBundle\DependencyInjection;
+namespace Acme\Bundle\XlsxConnectorBundle\DependencyInjection;
 
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\Config\FileLocator;
 
-class AcmeXmlConnectorExtension extends Extension
+class AcmeXlsxConnectorExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container)
     {
