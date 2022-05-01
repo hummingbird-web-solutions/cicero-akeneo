@@ -1,0 +1,20 @@
+parameters:
+    hummingbird_xlsx_connector.reader.file.xlsx_product.class: Hummingbird\Bundle\XlsxConnectorBundle\Reader\File\XlsxProductReader
+    hummingbird_xlsx_connector.reader.file.file_iterator.class: Hummingbird\Bundle\XlsxConnectorBundle\Reader\File\XlsxFileIterator
+
+services:
+    hummingbird_xlsx_connector.reader.file.xlsx_iterator_factory:
+        class: '%pim_connector.reader.file.file_iterator_factory.class%'
+        arguments:
+            - '%hummingbird_xlsx_connector.reader.file.file_iterator.class%'
+            - 'xlsx'
+
+    hummingbird_xlsx_connector.reader.file.xlsx_product:
+        class: '%hummingbird_xlsx_connector.reader.file.xlsx_product.class%'
+        arguments:
+            - '@pim_connector.array_converter.flat_to_standard.product'
+            - '@pim_connector.reader.file.xlsx_iterator_factory'
+            - '@pim_catalog.repository.attribute'
+            - []
+            - '@pim_connector.reader.file.media_path_transformer'
+            # - '@acme_xlsxconnector.array_converter.flat.product'

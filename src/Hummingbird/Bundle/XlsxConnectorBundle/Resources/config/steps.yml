@@ -6,7 +6,7 @@ services:
                 - '@event_dispatcher'
                 - '@akeneo_batch.job_repository'
                 # - '@pim_connector.reader.file.xlsx_product'
-                - '@acme_xlsx_connector.reader.file.xlsx_product'
+                - '@hummingbird_xlsx_connector.reader.file.xlsx_product'
                 - '@acme.connector.processor.custom_xlsx'
                 # - '@pim_connector.processor.denormalization.product'
                 - '@pim_connector.writer.database.product'
