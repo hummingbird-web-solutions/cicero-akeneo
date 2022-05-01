@@ -13,6 +13,7 @@ use Akeneo\Tool\Component\Connector\ArrayConverter\ArrayConverterInterface;
 use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
+use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
 
 class XlsxProductReader implements
     ItemReaderInterface,
@@ -37,15 +38,23 @@ class XlsxProductReader implements
 
     protected $options;
 
+    protected $mediaPathTransformer;
+
     /**
      * @param ArrayConverterInterface $converter
      */
-    public function __construct(ArrayConverterInterface $converter, FileIteratorFactory $fileIteratorFactory, AttributeRepositoryInterface $attributeRepository, array $options=[])
-    {
+    public function __construct(
+        ArrayConverterInterface $converter,
+        FileIteratorFactory $fileIteratorFactory,
+        AttributeRepositoryInterface $attributeRepository,
+        array $options=[],
+        MediaPathTransformer $mediaPathTransformer
+        ){
         $this->fileIteratorFactory = $fileIteratorFactory;
         $this->converter = $converter;
         $this->attributeRepository = $attributeRepository;
         $this->options = $options;
+        $this->mediaPathTransformer = $mediaPathTransformer;
     }
 
     public function totalItems(): int
@@ -61,6 +70,43 @@ class XlsxProductReader implements
     {
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
+
+        $filename = basename($filePath, '.xlsx');
+        $filenamecode = strtolower($filename);
+        if(str_contains($filenamecode, " ")){
+            $filenamecode = str_replace(' - ', '_', $filenamecode);
+            $filenamecode = str_replace('-', '_', $filenamecode);
+            $filenamecode = str_replace(' ', '_', $filenamecode);
+        }
+
+        $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder('http://akeneo-pim.local/');
+        $client = $clientBuilder->buildAuthenticatedByPassword('6_4ymevfr7meg4c00s0g8000wogg84s8owk0040cwgwo08gkc0k4', '2sszzurl4ke8c4cw40sk8888s8g0okwowg0g4w4kskkwkww4c0', 'admin_3451', '0542b65c6');
+        
+        $client->getCategoryApi()->upsert($filenamecode, [
+            'parent' => 'master',
+            'labels' => [
+                'en_US' => $filename,
+                'fr_FR' => $filename,
+                'de_DE' => $filename,
+            ]
+        ]);
+
+        $client->getFamilyApi()->upsert($filenamecode, [
+
+            'attributes'             => ['sku', 'name', 'description', 'short_description', 'brand', 'price', 'color', 'product_info'],
+            'attribute_requirements' => [
+                'ecommerce' => ['sku'],
+                'mobile' => ['sku'],
+                'print' =>  ['sku'],
+            ],
+            'labels'                 => [
+                'en_US' => $filename,
+                'fr_FR' => $filename,
+                'de_DE' => $filename,
+            ]
+        ]);
+
+
         if (null === $this->fileIterator) {
             $this->fileIterator = $this->fileIteratorFactory->create($filePath, $this->options);
             $this->fileIterator->rewind();
@@ -92,6 +138,16 @@ class XlsxProductReader implements
         
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
+        $client->getAttributeOptionApi()->upsert('Brand', '3M' , [
+            'sort_order' => 2,
+            'labels'     => [
+                'en_US' => '3M',
+                'fr_FR' => '3M',
+                'de_De' => '3M',
+            ]
+        ]);
+
+
         if (isset($item['3M ID'])) {
             $item['sku'] = $item['3M ID'];
             unset($item['3M ID']);
@@ -118,21 +174,32 @@ class XlsxProductReader implements
             if(!$item[$attribute])
                 unset($item[$attribute]);
         }
+
         $productInfo = "";
         foreach($item as $key => $value){
-            if($key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
+            $attributes = $this->attributeRepository->findBy(['code' => $key]);
+            if($key !== 'Brand' && $key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
                 $productInfo = $productInfo . $key .":" . $value.';';
                 unset($item[$key]);
             }
         }
         $item["product_info"] = $productInfo;
+        $item["categories"] = $filenamecode;
+        $item['family'] = $filenamecode;  
+        $item['Brand'] = '3M';  
+
         try {
             $item = $this->converter->convert($item, $this->getArrayConverterOptions());
         } catch (DataArrayConversionException $e) {
             $this->skipItemFromConversionException($item, $e);
         }
-        // var_dump($item);
-        // die;
+
+        if (!is_array($item) || !isset($item['values'])) {
+            return $item;
+        }
+        $item['values'] = $this->mediaPathTransformer
+            ->transform($item['values'], $this->fileIterator->getDirectoryPath());
+
         return $item;
     }
 
