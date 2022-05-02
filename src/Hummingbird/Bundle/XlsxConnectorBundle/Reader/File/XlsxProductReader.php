@@ -91,21 +91,6 @@ class XlsxProductReader implements
             ]
         ]);
 
-        $client->getFamilyApi()->upsert($filenamecode, [
-
-            'attributes'             => ['sku', 'name', 'description', 'short_description', 'brand', 'price', 'color', 'product_info'],
-            'attribute_requirements' => [
-                'ecommerce' => ['sku'],
-                'mobile' => ['sku'],
-                'print' =>  ['sku'],
-            ],
-            'labels'                 => [
-                'en_US' => $filename,
-                'fr_FR' => $filename,
-                'de_DE' => $filename,
-            ]
-        ]);
-
 
         if (null === $this->fileIterator) {
             $this->fileIterator = $this->fileIteratorFactory->create($filePath, $this->options);
@@ -138,16 +123,6 @@ class XlsxProductReader implements
         
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
-        $client->getAttributeOptionApi()->upsert('Brand', '3M' , [
-            'sort_order' => 2,
-            'labels'     => [
-                'en_US' => '3M',
-                'fr_FR' => '3M',
-                'de_De' => '3M',
-            ]
-        ]);
-
-
         if (isset($item['3M ID'])) {
             $item['sku'] = $item['3M ID'];
             unset($item['3M ID']);
@@ -176,17 +151,44 @@ class XlsxProductReader implements
         }
 
         $productInfo = "";
+        $supported_attr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
-            if($key !== 'Brand' && $key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
+
+            if(!empty($attributes)) {
+                if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
+                    $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $item[$key]);
+                    $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
+                        'labels'     => [
+                            'en_US' => $item[$key]
+                        ]
+                    ]);
+                }
+                array_push($supported_attr, $key);
+            }
+
+            if($key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
                 $productInfo = $productInfo . $key .":" . $value.';';
                 unset($item[$key]);
             }
         }
+
+        $client->getFamilyApi()->upsert($filenamecode, [
+            'attributes'             => array_merge($supported_attr, ['product_info']),
+            'attribute_requirements' => [
+                'ecommerce' => ['sku'],
+                'mobile' => ['sku'],
+                'print' =>  ['sku'],
+            ],
+            'labels'                 => [
+                'en_US' => $filename,
+                'fr_FR' => $filename,
+                'de_DE' => $filename,
+            ]
+       ]);
         $item["product_info"] = $productInfo;
         $item["categories"] = $filenamecode;
         $item['family'] = $filenamecode;  
-        $item['Brand'] = '3M';  
 
         try {
             $item = $this->converter->convert($item, $this->getArrayConverterOptions());
