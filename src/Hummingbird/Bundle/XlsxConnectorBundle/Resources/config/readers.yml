@@ -12,9 +12,9 @@ services:
     hummingbird_xlsx_connector.reader.file.xlsx_product:
         class: '%hummingbird_xlsx_connector.reader.file.xlsx_product.class%'
         arguments:
-            - '@pim_connector.array_converter.flat_to_standard.product'
+            # - '@pim_connector.array_converter.flat_to_standard.product'
+            - '@hummingbird_xlsxconnector.array_converter.flat.product'
             - '@pim_connector.reader.file.xlsx_iterator_factory'
             - '@pim_catalog.repository.attribute'
             - []
             - '@pim_connector.reader.file.media_path_transformer'
-            # - '@acme_xlsxconnector.array_converter.flat.product'
