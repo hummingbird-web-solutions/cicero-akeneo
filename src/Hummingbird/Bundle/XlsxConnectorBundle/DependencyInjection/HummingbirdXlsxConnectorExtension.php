@@ -16,5 +16,6 @@ class HummingbirdXlsxConnectorExtension extends Extension
         $loader->load('job_parameters.yml');
         $loader->load('steps.yml');
         $loader->load('readers.yml');
+        $loader->load('processors.yml');
     }
 }
