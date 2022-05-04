@@ -133,23 +133,23 @@ class XlsxProductReader implements
             unset($item['short_description']);
         }
 
+        $brand_value = '';
+        if (isset($item['Brand'])){
+            $brand_value = preg_replace("/[^a-zA-Z0-9]/", "", $item['Brand']);
+        }
+
         foreach(array_keys($item) as $attribute){
-            $oldAttribute = $attribute;
             if(str_contains($attribute, " ")){
                 $attribute = str_replace(' - ', '_', $attribute);
                 $attribute = str_replace('-', '_', $attribute);
                 $attribute = str_replace(' ', '_', $attribute);
-            }
-            if(strcmp($attribute, $oldAttribute)!==0){
-                $item[strtolower($attribute)] = $item[$oldAttribute];
-                unset($item[$oldAttribute]);
             }
         }
         foreach(array_keys($item) as $attribute){
             if(!$item[$attribute])
                 unset($item[$attribute]);
         }
-
+        
         $productInfo = "";
         $supported_attr = [];
         foreach($item as $key => $value){
@@ -173,6 +173,8 @@ class XlsxProductReader implements
             }
         }
 
+        $item['Brand'] = $brand_value;
+
         $client->getFamilyApi()->upsert($filenamecode, [
             'attributes'             => array_merge($supported_attr, ['product_info']),
             'attribute_requirements' => [
@@ -189,6 +191,7 @@ class XlsxProductReader implements
         $item["product_info"] = $productInfo;
         $item["categories"] = $filenamecode;
         $item['family'] = $filenamecode;  
+
 
         try {
             $item = $this->converter->convert($item, $this->getArrayConverterOptions());
