@@ -133,11 +133,6 @@ class XlsxProductReader implements
             unset($item['short_description']);
         }
 
-        $brand_value = '';
-        if (isset($item['Brand'])){
-            $brand_value = preg_replace("/[^a-zA-Z0-9]/", "", $item['Brand']);
-        }
-
         foreach(array_keys($item) as $attribute){
             if(str_contains($attribute, " ")){
                 $attribute = str_replace(' - ', '_', $attribute);
@@ -151,7 +146,7 @@ class XlsxProductReader implements
         }
         
         $productInfo = "";
-        $supported_attr = [];
+        $supportedAttr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
 
@@ -164,19 +159,30 @@ class XlsxProductReader implements
                         ]
                     ]);
                 }
-                array_push($supported_attr, $key);
+                array_push($supportedAttr, $key);
             }
+        }
 
+        $attrOption = [];
+        foreach($supportedAttr as $attr){
+            if (isset($item[$attr])){
+                $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9]/", "", $item[$attr]);
+            }
+        }
+
+        foreach($item as $key => $value){
             if($key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
                 $productInfo = $productInfo . $key .":" . $value.';';
                 unset($item[$key]);
             }
         }
-
-        $item['Brand'] = $brand_value;
-
+        
+        foreach($supportedAttr as $attr){
+            $item[$attr] = $attrOption[$attr]; 
+        }
+        
         $client->getFamilyApi()->upsert($filenamecode, [
-            'attributes'             => array_merge($supported_attr, ['product_info']),
+            'attributes'             => array_merge($supportedAttr, ['product_info']),
             'attribute_requirements' => [
                 'ecommerce' => ['sku'],
                 'mobile' => ['sku'],
@@ -191,7 +197,6 @@ class XlsxProductReader implements
         $item["product_info"] = $productInfo;
         $item["categories"] = $filenamecode;
         $item['family'] = $filenamecode;  
-
 
         try {
             $item = $this->converter->convert($item, $this->getArrayConverterOptions());
