@@ -1,3 +1,0 @@
-pim_user:
-  min_role: "Sinun on valittava vähintään {{ limit }} rooli.|Valitse vähintään {{ limit }} roolia."
-  password_match: "Salasanat eivät täsmää."

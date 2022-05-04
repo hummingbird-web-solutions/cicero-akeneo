@@ -1,3 +1,0 @@
-pim_enrich.entity.locale:
-  constraint:
-    invalid_locale_code: Acest cod de localizare nu are formatul aşteptat

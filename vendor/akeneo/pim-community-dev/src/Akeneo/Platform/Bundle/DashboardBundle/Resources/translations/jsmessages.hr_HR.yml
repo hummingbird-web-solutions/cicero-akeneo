@@ -1,6 +1,0 @@
-pim_dashboard:
-  widget:
-    completeness:
-      load_more: 'Učitaj više...'
-pim_title:
-  pim_dashboard_index: Nadzorna ploča
