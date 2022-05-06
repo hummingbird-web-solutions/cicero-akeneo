@@ -14,6 +14,7 @@ use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
 use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
+use Google\Protobuf\Internal\DescriptorProto_ReservedRange;
 
 class XlsxProductReader implements
     ItemReaderInterface,
@@ -66,6 +67,11 @@ class XlsxProductReader implements
         return max(iterator_count($iterator) - 1, 0);
     }
 
+    /*
+    * This function reads the xlsx file and dumps the access attributes in the form of key value pair in a custom product info attribute
+    * Sets the category and family name to the filename
+    * Creates Attribute option if its not present by default 
+    */
     public function read()
     {
         $jobParameters = $this->stepExecution->getJobParameters();
@@ -79,9 +85,11 @@ class XlsxProductReader implements
             $filenamecode = str_replace(' ', '_', $filenamecode);
         }
 
+        //using php api client to set categories, families, attributes and attribute option following its documentation and hardcoded the local pim url
         $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder('http://akeneo-pim.local/');
         $client = $clientBuilder->buildAuthenticatedByPassword('6_4ymevfr7meg4c00s0g8000wogg84s8owk0040cwgwo08gkc0k4', '2sszzurl4ke8c4cw40sk8888s8g0okwowg0g4w4kskkwkww4c0', 'admin_3451', '0542b65c6');
         
+        // set the category to filename
         $client->getCategoryApi()->upsert($filenamecode, [
             'parent' => 'master',
             'labels' => [
@@ -123,16 +131,23 @@ class XlsxProductReader implements
         
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
+        // maps 3M ID with sku
         if (isset($item['3M ID'])) {
             $item['sku'] = $item['3M ID'];
             unset($item['3M ID']);
         }
 
+        // maps short description with Short_description-en_US-ecommerce'
         if (isset($item['short_description'])){
             $item['Short_description-en_US-ecommerce'] = $item['short_description'];
             unset($item['short_description']);
         }
 
+        // maps Marketplace Formal Name with name
+        $item['Name'] = $item['Marketplace Formal Name'];
+        unset($item['Marketplace Formal Name']);
+
+        // Cleans the array for processing
         foreach(array_keys($item) as $attribute){
             if(str_contains($attribute, " ")){
                 $attribute = str_replace(' - ', '_', $attribute);
@@ -141,14 +156,13 @@ class XlsxProductReader implements
             }
         }
 
+        // Removes the key from the items array if the attribute is blank
         foreach(array_keys($item) as $attribute){
             if(!$item[$attribute])
                 unset($item[$attribute]);
         }
 
-        $item['Name'] = $item['Marketplace Formal Name'];
-        unset($item['Marketplace Formal Name']);
-        
+        //creates the attribute option if not present already if the default(supported) attributes
         $supportedAttr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
@@ -166,6 +180,7 @@ class XlsxProductReader implements
             }
         }
 
+        //cleans the supported attribute options
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
@@ -173,7 +188,7 @@ class XlsxProductReader implements
             }
         }
 
-        // setting the product info attribute
+        // Creating the attribute product_info if not already exist;
         $client->getAttributeApi()->upsert('product_info', [
             'type'                   => 'pim_catalog_textarea',
             'group'                  => 'product',
@@ -192,18 +207,28 @@ class XlsxProductReader implements
                     unset($item[$key]);
                 }
                 else{
-                    $descString===""?:$value=$descString;
-                    $info = "<li><strong>".$key .":</strong> " . $value.'</li>';
+                    if(str_contains($key, 'bullet')){
+                        $descString = $descString.$value.', ';
+                        unset($item[$key]);
+                        continue;
+                    }
+                    if($descString){
+                        $productInfo = $productInfo . "<tr><th>Short Description</th><td>" . $descString . '</td></tr>';
+                        $descString = "";
+                    }
+                    $info = "<tr><th>".$key ."</th>" . "<td>".$value."</td></tr>";
                     $productInfo = $productInfo . $info;
                     unset($item[$key]);
                 }
             }
         }
         
+        // sets the attributes
         foreach($supportedAttr as $attr){
             $item[$attr] = $attrOption[$attr]; 
         }
-        
+
+        // creates the family with the filename and adds attributes to that family
         $client->getFamilyApi()->upsert($filenamecode, [
             'attributes'             => array_merge($supportedAttr, ['product_info']),
             'attribute_requirements' => [
