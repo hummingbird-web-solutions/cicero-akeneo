@@ -14,6 +14,7 @@ use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
 use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
+use Google\Protobuf\Internal\DescriptorProto_ReservedRange;
 
 class XlsxProductReader implements
     ItemReaderInterface,
@@ -206,8 +207,16 @@ class XlsxProductReader implements
                     unset($item[$key]);
                 }
                 else{
-                    $descString===""?:$value=$descString;
-                    $info = "<li><strong>".$key .":</strong> " . $value.'</li>';
+                    if(str_contains($key, 'bullet')){
+                        $descString = $descString.$value.', ';
+                        unset($item[$key]);
+                        continue;
+                    }
+                    if($descString){
+                        $productInfo = $productInfo . "<tr><th>Short Description</th><td>" . $descString . '</td></tr>';
+                        $descString = "";
+                    }
+                    $info = "<tr><th>".$key ."</th>" . "<td>".$value."</td></tr>";
                     $productInfo = $productInfo . $info;
                     unset($item[$key]);
                 }
