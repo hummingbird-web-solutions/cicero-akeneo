@@ -140,19 +140,22 @@ class XlsxProductReader implements
                 $attribute = str_replace(' ', '_', $attribute);
             }
         }
+
         foreach(array_keys($item) as $attribute){
             if(!$item[$attribute])
                 unset($item[$attribute]);
         }
+
+        $item['Name'] = $item['Marketplace Formal Name'];
+        unset($item['Marketplace Formal Name']);
         
-        $productInfo = "";
         $supportedAttr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
 
             if(!empty($attributes)) {
                 if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
-                    $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $item[$key]);
+                    $attr_modified = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$key]);
                     $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
                         'labels'     => [
                             'en_US' => $item[$key]
@@ -166,14 +169,24 @@ class XlsxProductReader implements
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
-                $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9]/", "", $item[$attr]);
+                $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
             }
         }
 
+        // setting the product info attribute
+        $productInfo = "";
+        $descString = "";
         foreach($item as $key => $value){
             if($key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
-                $productInfo = $productInfo . $key .":" . $value.';';
-                unset($item[$key]);
+                if($key ==='Name'||str_contains($key, 'Image')){
+                    unset($item[$key]);
+                }
+                else{
+                    $descString===""?:$value=$descString;
+                    $info = "<li><strong>".$key .":</strong> " . $value.'</li>';
+                    $productInfo = $productInfo . $info;
+                    unset($item[$key]);
+                }
             }
         }
         
@@ -208,8 +221,8 @@ class XlsxProductReader implements
             return $item;
         }
         $item['values'] = $this->mediaPathTransformer
-            ->transform($item['values'], $this->fileIterator->getDirectoryPath());
-
+        ->transform($item['values'], $this->fileIterator->getDirectoryPath());
+ 
         return $item;
     }
 
