@@ -160,7 +160,7 @@ class XlsxProductReader implements
             if(!$item[$attribute])
                 unset($item[$attribute]);
         }
-        
+
         //creates the attribute option if not present already if the default(supported) attributes
         $supportedAttr = [];
         foreach($item as $key => $value){
@@ -187,7 +187,17 @@ class XlsxProductReader implements
             }
         }
 
-        // setting the product info attribute
+        // Creating the attribute product_info if not already exist;
+        $client->getAttributeApi()->upsert('product_info', [
+            'type'                   => 'pim_catalog_textarea',
+            'group'                  => 'product',
+            'wysiwyg_enabled'        => true,
+            'sort_order'             => 1,
+            'labels'                 => [
+                'en_US' => 'Product Information',
+            ],
+        ]);
+
         $productInfo = "";
         $descString = "";
         foreach($item as $key => $value){
@@ -208,7 +218,7 @@ class XlsxProductReader implements
         foreach($supportedAttr as $attr){
             $item[$attr] = $attrOption[$attr]; 
         }
-        
+
         // creates the family with the filename and adds attributes to that family
         $client->getFamilyApi()->upsert($filenamecode, [
             'attributes'             => array_merge($supportedAttr, ['product_info']),
