@@ -174,6 +174,16 @@ class XlsxProductReader implements
         }
 
         // setting the product info attribute
+        $client->getAttributeApi()->upsert('product_info', [
+            'type'                   => 'pim_catalog_textarea',
+            'group'                  => 'product',
+            'wysiwyg_enabled'        => true,
+            'sort_order'             => 1,
+            'labels'                 => [
+                'en_US' => 'Product Information',
+            ],
+        ]);
+
         $productInfo = "";
         $descString = "";
         foreach($item as $key => $value){
