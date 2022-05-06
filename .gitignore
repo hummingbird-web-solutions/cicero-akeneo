@@ -17,8 +17,7 @@ var/*
 var/uploads/*
 var/uploads/product/*
 var/file_storage/*
-vendor
-!vendor/akeneo/pim-community-dev/src/Acme/*
+vendor/*
 bin/symfony_requirements
 composer.phar
 /cov

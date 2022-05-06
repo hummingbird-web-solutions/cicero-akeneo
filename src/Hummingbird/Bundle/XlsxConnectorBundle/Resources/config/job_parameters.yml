@@ -1,0 +1,20 @@
+parameters:
+    hummingbird_xlsx_connector.job.job_parameters.simple_xlsx_import.class: Hummingbird\Bundle\XlsxConnectorBundle\Job\JobParameters\SimpleXlsxImport
+
+services:
+    hummingbird_xlsx_connector.job.job_parameters.simple_xlsx_product_import:
+        class: '%hummingbird_xlsx_connector.job.job_parameters.simple_xlsx_import.class%'
+        arguments:
+            - '%pim_catalog.localization.decimal_separators%'
+            - '%pim_catalog.localization.date_formats%'
+        tags:
+            - { name: akeneo_batch.job.job_parameters.constraint_collection_provider }
+            - { name: akeneo_batch.job.job_parameters.default_values_provider }
+
+    hummingbird_xlsx_connector.job.job_parameters.provider.simple_xlsx_product_import:
+        class: 'Akeneo\Platform\Bundle\ImportExportBundle\Provider\Form\JobInstanceFormProvider'
+        arguments:
+            -
+                hb_custom_xlsx_product_import: pim-job-instance-xlsx-product-import
+        tags:
+            - { name: pim_enrich.provider.form }

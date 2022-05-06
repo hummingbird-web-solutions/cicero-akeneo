@@ -1,0 +1,123 @@
+api_webkul_akeneo_gallery_index:
+    path: /webkul/gallery/
+
+api_webkul_gallery_configuration_get:
+    path: /webkul/gallery/get
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getAction }
+    methods: [GET]webkul/gallery/create/rest
+
+api_webkul_gallery_asset_create_rest:
+    path: /webkul/gallery/create/rest
+    defaults: { _controller: webkul.image_gallery_configuration.controller:saveAction }
+    methods: [POST]  
+
+api_webkul_gallery_group_create_rest:
+    path: /webkul/gallery/create/group
+    defaults: { _controller: webkul.image_gallery_configuration.controller:saveGroupAction }
+    methods: [POST]
+
+api_webkul_gallery_asset_media_create_rest:
+    path: /webkul/gallery/media/create/rest
+    defaults: { _controller: webkul.image_gallery_configuration.controller:saveMediaAction }
+    methods: [POST]
+
+api_webkul_gallery_rest_get:
+    path: /webkul/gallery/{identifier}/rest
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getGalleryAction }
+    methods: [GET]
+
+api_webkulgallery_gettags:
+    path: /webkul/gallery/tag
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getTagAction }
+    methods: [GET]
+
+api_image_gallery_version:
+    path: /webkul/gallery/version
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getModeVersionAction }
+    methods: [GET]
+
+api_webkulgallery_getgroups:
+    path: /webkul/gallery/gallery-groups
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getGroupsAction }
+    methods: [GET]
+
+api_webkulgallery_tag_create:
+    path: /webkul/gallery/tag/create
+    defaults: { _controller: webkul.image_gallery_configuration.controller:addTagAction }
+    methods: [POST]
+
+api_webkulgallery_asset_rest_index:
+    path: /webkul/gallery/asset
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getGalleryAssetsAction }
+    methods: [GET]
+
+api_webkul_gallery_media_rest_get:
+    path: /webkul/gallery/media/rest/data
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getMediaDetailAction }
+    methods: [GET]
+
+api_webkul_gallery_media_rest_get_image:
+    path: /webkul/gallery/media/rest/image/data
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getImageForSlider }
+    methods: [GET]
+
+api_webkul_gallery_asset_edit:
+    path: /webkul/gallery/{code}/edit
+    requirements:
+        code: '[a-zA-Z0-9_]+'
+
+api_webkul_gallery_media_edit:
+    path: /webkul/gallery/media/{code}/edit
+    requirements:
+        code: '[a-zA-Z0-9_]+'
+
+api_webkul_gallery_asset_delete:
+    path: /webkul/gallery/{code}/delete
+    defaults: { _controller: webkul.image_gallery_configuration.controller:deleteAction }
+    requirements:
+        id: \d+
+    methods: [DELETE]
+
+api_webkul_gallery_media_rest_post:
+    path: /webkul/gallery/media/saveimage
+    defaults: { _controller: webkul_image.gallery.controller.rest.media:postAction }
+    methods: [POST]
+
+api_webkul_gallery_categorytree:
+    path: /webkul/gallery/category/rest
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getCategoryAction }
+    methods: [GET]
+
+api_webkulgallery_categorytree_listtree:
+    path: /webkul/gallery/category/list
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getCategoryAction }
+    methods: [GET]    
+
+api_webkulgallery_categorytree_children:
+    path: /webkul/gallery/category/children
+    defaults: { _controller: webkul.image_gallery_configuration.controller:getCategoryAction }
+
+api_webkulgallery_media_download:
+    path: /webkul/gallery/media/{identifier}/download
+    defaults: { _controller: webkul_image.gallery.controller.media:downloadAction }
+    methods: [GET]
+
+api_webkulgallery_group_data_grid:
+    path: /webkul/gallery/rest/custom-group-mapping/
+
+api_webkul_gallery_group_delete:
+    path: /webkul/gallery/{id}/deletegroup
+    defaults: { _controller: webkul.image_gallery_configuration.controller:deleteGroupAction }
+
+api_webkul_edit_media:
+    path: /webkul/gallery/rest/media/url
+    defaults: { _controller: webkul_image.gallery.controller.media:editMediaAction }
+
+api_webkul_media_post:
+    path: /webkul/gallery/media/save
+    defaults: { _controller: webkul_image.gallery.controller.media:saveMediaAction }
+
+api_webkul_media_editor:
+    path: /webkul/gallery/media/editor
+    defaults: { _controller: webkul_image.gallery.controller.media:editorMediaAction }
+    methods: [GET]

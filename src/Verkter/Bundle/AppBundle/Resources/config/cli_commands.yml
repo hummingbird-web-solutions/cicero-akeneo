@@ -1,0 +1,33 @@
+services:
+    Verkter\Bundle\AppBundle\Command\CreateAttributesForProductName:
+        arguments:
+            - '@database_connection'
+            - '@pim_api.repository.attribute'
+            - '@pim_catalog.factory.attribute'
+            - '@pim_catalog.updater.attribute'
+            - '@validator'
+            - '@pim_catalog.saver.attribute'
+        tags:
+            - { name: console.command }
+
+    Verkter\Bundle\AppBundle\Command\CreateStartOptionsFromFile:
+        arguments:
+            - '@database_connection'
+            - '@pim_catalog.repository.attribute'
+            - '@pim_catalog.factory.attribute_option'
+            - '@pim_catalog.saver.attribute_option'
+            - '@form.factory'
+            - '@doctrine.orm.entity_manager'
+        tags:
+            - { name: console.command }
+
+    Verkter\Bundle\AppBundle\Command\CreateEndOptionsFromFile:
+        arguments:
+            - '@database_connection'
+            - '@pim_catalog.repository.attribute'
+            - '@pim_catalog.factory.attribute_option'
+            - '@pim_catalog.saver.attribute_option'
+            - '@form.factory'
+            - '@doctrine.orm.entity_manager'
+        tags:
+            - { name: console.command }

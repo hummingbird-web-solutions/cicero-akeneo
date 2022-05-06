@@ -1,0 +1,13 @@
+parameters:
+    attributes_codes_for_generating_name_and_url_key:
+        - product_name_start
+        - product_name_middle
+        - product_name_ending
+
+    attribute_code_name_product: name
+
+    attribute_code_url_key: url_key
+
+    attributes_codes_for_generating_name_via_save_option:
+        - product_name_start
+        - product_name_ending

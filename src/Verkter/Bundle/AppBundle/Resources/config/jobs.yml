@@ -1,0 +1,18 @@
+parameters:
+    verkter_connector.connector_name.csv: 'Verkter CSV connector'
+    verkter_connector.job_name.csv_product_import: 'verkter_csv_product_import'
+
+services:
+    verkter_connector.job.csv_product_import:
+        class: '%pim_connector.job.simple_job.class%'
+        arguments:
+            - '%verkter_connector.job_name.csv_product_import%'
+            - '@event_dispatcher'
+            - '@akeneo_batch.job_repository'
+            -
+                - '@pim_connector.step.charset_validator'
+                - '@pim_connector.step.xlsx_product.import'
+                - '@pim_connector.step.xlsx_product.import_associations'
+            - true
+        tags:
+            - { name: akeneo_batch.job, connector: '%verkter_connector.connector_name.csv%', type: '%pim_connector.job.import_type%' }

@@ -1,0 +1,3 @@
+api_webkul_galery:
+    resource: '@VerkterAppBundle/Resources/config/routing/webkul/imageGallery/routing.yml'
+    prefix: /api

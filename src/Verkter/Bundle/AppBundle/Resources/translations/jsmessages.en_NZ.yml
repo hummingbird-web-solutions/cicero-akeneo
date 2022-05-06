@@ -1,0 +1,5 @@
+# Job labels
+batch_jobs:
+  verkter_csv_product_import:
+    label: Product import in CSV
+    import.label: Product import

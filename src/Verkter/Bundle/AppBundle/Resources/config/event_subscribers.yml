@@ -1,0 +1,14 @@
+parameters:
+    verkter_app.event_subscriber.update_product_name.class: Verkter\Bundle\AppBundle\EventSubscriber\UpdateProductNameSubscriber
+
+services:
+    verkter_app.event_subscriber.update_product_name:
+        class: '%verkter_app.event_subscriber.update_product_name.class%'
+        arguments:
+          - '@database_connection'
+          - '@pim_catalog.updater.product'
+          - '@pim_catalog.repository.product'
+          - '@pim_catalog.saver.product'
+          - '%attributes_codes_for_generating_name_via_save_option%'
+        tags:
+          - { name: kernel.event_subscriber }

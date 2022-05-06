@@ -1,0 +1,19 @@
+parameters:
+    pim_catalog.updater.product.class: Verkter\Bundle\AppBundle\Updater\ProductUpdater
+
+services:
+    pim_catalog.updater.product:
+        class: '%pim_catalog.updater.product.class%'
+        arguments:
+            - '@pim_catalog.updater.property_setter'
+            - '@pim_catalog.updater.entity_with_values'
+            - '@pim_catalog.association.filter.parent_associations'
+            - '@pim_catalog.quantified_associations.quantified_associations_from_ancestors_filter'
+            - '@pim_catalog.updater.validator.quantified_associations_structure_validator'
+            - ['identifier', 'created', 'updated', 'parent_associations', 'metadata', 'quality_scores']
+            - '@pim_catalog.repository.attribute'
+            - '@pim_user.context.user'
+            - '@pim_catalog.repository.cached_attribute_option'
+            - '%attributes_codes_for_generating_name_and_url_key%'
+            - '%attribute_code_name_product%'
+            - '%attribute_code_url_key%'

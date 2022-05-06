@@ -1,0 +1,11 @@
+services:
+    hummingbird_xlsx_connector.step.custom_xlsx_product_import.import:
+            class: '%pim_connector.step.item_step.class%'
+            arguments:
+                - 'import'
+                - '@event_dispatcher'
+                - '@akeneo_batch.job_repository'
+                - '@hummingbird_xlsx_connector.reader.file.xlsx_product'
+                - '@hummingbird.connector.processor.custom_xlsx'
+                - '@pim_connector.writer.database.product'
+                - 10

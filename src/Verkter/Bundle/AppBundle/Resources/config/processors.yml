@@ -1,0 +1,10 @@
+parameters:
+    verkter.connector.processor.mass_edit.attributes.custom_attribute.class: Verkter\Bundle\AppBundle\Connector\Processor\MassEdit\Attributes\CustomAttributeProcessor
+
+services:
+    verkter.connector.processor.mass_edit.attributes.custom_attribute:
+        class: '%verkter.connector.processor.mass_edit.attributes.custom_attribute.class%'
+        arguments:
+            - '@pim_comment.builder.comment'
+            - '@pim_comment.saver.comment'
+            - '@pim_user.repository.user'
