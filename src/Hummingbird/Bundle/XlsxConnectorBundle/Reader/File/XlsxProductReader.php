@@ -14,7 +14,6 @@ use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
 use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
-use Google\Protobuf\Internal\DescriptorProto_ReservedRange;
 
 class XlsxProductReader implements
     ItemReaderInterface,
@@ -143,9 +142,20 @@ class XlsxProductReader implements
             unset($item['short_description']);
         }
 
+        // map description with marketplace description
+        if (isset($item['Marketplace Description'])){
+            $item['Description-en_US-ecommerce'] = $item['Marketplace Description'];
+            unset($item['Marketplace Description']);
+        }
+
         // maps Marketplace Formal Name with name
         $item['Name'] = $item['Marketplace Formal Name'];
         unset($item['Marketplace Formal Name']);
+
+        //to remove duplicate description
+        if($item['Enhanced Extended Description']){
+            unset($item['Enhanced Extended Description']);
+        }
 
         // Cleans the array for processing
         foreach(array_keys($item) as $attribute){
@@ -162,17 +172,16 @@ class XlsxProductReader implements
                 unset($item[$attribute]);
         }
 
-        //creates the attribute option if not present already if the default(supported) attributes
+        //creates the attribute option if not present already
         $supportedAttr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
-
             if(!empty($attributes)) {
                 if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
-                    $attr_modified = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$key]);
+                    $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $value);
                     $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
                         'labels'     => [
-                            'en_US' => $item[$key]
+                            'en_US' => $value,
                         ]
                     ]);
                 }
@@ -184,7 +193,12 @@ class XlsxProductReader implements
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
-                $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
+                if($attr === "Name"){
+                    $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
+                }
+                else{
+                    $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9]/", "", $item[$attr]);
+                }
             }
         }
 
@@ -199,16 +213,17 @@ class XlsxProductReader implements
             ],
         ]);
 
+        // create the content of product info string
         $productInfo = "";
         $descString = "";
         foreach($item as $key => $value){
-            if($key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
+            if($key !== 'Description-en_US-ecommerce' && $key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
                 if($key ==='Name'||str_contains($key, 'Image')){
                     unset($item[$key]);
                 }
                 else{
                     if(str_contains($key, 'bullet')){
-                        $descString = $descString.$value.', ';
+                        $descString = $descString.'<li>'.$value.'</li>';
                         unset($item[$key]);
                         continue;
                     }
@@ -230,7 +245,7 @@ class XlsxProductReader implements
 
         // creates the family with the filename and adds attributes to that family
         $client->getFamilyApi()->upsert($filenamecode, [
-            'attributes'             => array_merge($supportedAttr, ['product_info']),
+            'attributes'             => array_merge($supportedAttr, ['product_info', 'description']),
             'attribute_requirements' => [
                 'ecommerce' => ['sku'],
                 'mobile' => ['sku'],
@@ -244,7 +259,7 @@ class XlsxProductReader implements
        ]);
         $item["product_info"] = $productInfo;
         $item["categories"] = $filenamecode;
-        $item['family'] = $filenamecode;  
+        $item['family'] = $filenamecode;
 
         try {
             $item = $this->converter->convert($item, $this->getArrayConverterOptions());
