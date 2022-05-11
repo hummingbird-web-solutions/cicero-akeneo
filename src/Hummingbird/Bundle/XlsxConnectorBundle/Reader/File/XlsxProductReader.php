@@ -13,7 +13,8 @@ use Akeneo\Tool\Component\Connector\ArrayConverter\ArrayConverterInterface;
 use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
-use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
+// use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
+use Hummingbird\Bundle\XlsxConnectorBundle\Reader\File\MediaPathTransformer;
 
 class XlsxProductReader implements
     ItemReaderInterface,
@@ -157,6 +158,11 @@ class XlsxProductReader implements
             unset($item['Enhanced Extended Description']);
         }
 
+        $item['test1'] = $item['High Resolution Main Image'];
+        // echo $item['test1'];
+        // die;
+        unset($item['High Resolution Image']);
+
         // Cleans the array for processing
         foreach(array_keys($item) as $attribute){
             if(str_contains($attribute, " ")){
@@ -193,6 +199,9 @@ class XlsxProductReader implements
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
+                if($attr === 'test1'){
+                    $attrOption[$attr] = $item[$attr];
+                }
                 if($attr === "Name"){
                     $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
                 }
@@ -242,10 +251,12 @@ class XlsxProductReader implements
         foreach($supportedAttr as $attr){
             $item[$attr] = $attrOption[$attr]; 
         }
+        echo $item['test1'];
+        die;
 
         // creates the family with the filename and adds attributes to that family
         $client->getFamilyApi()->upsert($filenamecode, [
-            'attributes'             => array_merge($supportedAttr, ['product_info', 'description']),
+            'attributes'             => array_merge($supportedAttr, ['product_info', 'description', 'test1']),
             'attribute_requirements' => [
                 'ecommerce' => ['sku'],
                 'mobile' => ['sku'],
@@ -266,13 +277,14 @@ class XlsxProductReader implements
         } catch (DataArrayConversionException $e) {
             $this->skipItemFromConversionException($item, $e);
         }
-
+        
         if (!is_array($item) || !isset($item['values'])) {
             return $item;
         }
         $item['values'] = $this->mediaPathTransformer
         ->transform($item['values'], $this->fileIterator->getDirectoryPath());
- 
+        var_dump($item['values']);
+        die;
         return $item;
     }
 
