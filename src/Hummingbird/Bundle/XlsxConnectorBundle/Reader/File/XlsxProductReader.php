@@ -159,8 +159,6 @@ class XlsxProductReader implements
         }
 
         $item['test1'] = $item['High Resolution Main Image'];
-        // echo $item['test1'];
-        // die;
         unset($item['High Resolution Image']);
 
         // Cleans the array for processing
@@ -194,7 +192,7 @@ class XlsxProductReader implements
                 array_push($supportedAttr, $key);
             }
         }
-
+        
         //cleans the supported attribute options
         $attrOption = [];
         foreach($supportedAttr as $attr){
@@ -202,7 +200,7 @@ class XlsxProductReader implements
                 if($attr === 'test1'){
                     $attrOption[$attr] = $item[$attr];
                 }
-                if($attr === "Name"){
+                else if($attr === "Name"){
                     $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
                 }
                 else{
@@ -251,8 +249,6 @@ class XlsxProductReader implements
         foreach($supportedAttr as $attr){
             $item[$attr] = $attrOption[$attr]; 
         }
-        echo $item['test1'];
-        die;
 
         // creates the family with the filename and adds attributes to that family
         $client->getFamilyApi()->upsert($filenamecode, [
@@ -283,8 +279,7 @@ class XlsxProductReader implements
         }
         $item['values'] = $this->mediaPathTransformer
         ->transform($item['values'], $this->fileIterator->getDirectoryPath());
-        var_dump($item['values']);
-        die;
+
         return $item;
     }
 

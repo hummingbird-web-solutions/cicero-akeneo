@@ -12,18 +12,15 @@ class MediaPathTransformer extends BaseMediaPathTransformer
         $mediaAttributes = $this->attributeRepository->findMediaAttributeCodes();
 
         foreach ($attributeValues as $code => $values) {
-            // var_dump($values);
             if (in_array($code, $mediaAttributes)) {
                 foreach ($values as $index => $value) {
                     if (isset($value['data'])) {
                         $dataFilePath = $value['data'];
-                        echo $dataFilePath;
                         $attributeValues[$code][$index]['data'] = $dataFilePath ? $this->getPath($filePath, $dataFilePath) : null;
                     }
                 }
             }
         }
-        // die;
         return $attributeValues;
     }
 
