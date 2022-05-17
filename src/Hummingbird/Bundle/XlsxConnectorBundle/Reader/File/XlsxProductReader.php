@@ -158,9 +158,6 @@ class XlsxProductReader implements
             unset($item['Enhanced Extended Description']);
         }
 
-        $item['test1'] = $item['High Resolution Main Image'];
-        unset($item['High Resolution Image']);
-
         // Cleans the array for processing
         foreach(array_keys($item) as $attribute){
             if(str_contains($attribute, " ")){
@@ -176,7 +173,24 @@ class XlsxProductReader implements
                 unset($item[$attribute]);
         }
 
+        // $item['diameter_test'] = $item['Diameter (Metric)'];
+        // $item['diameter'] = $item['Diameter (Metric)'];
+        // $item['diameter_test'] = $item['Diameter Metric Unit'];
         //creates the attribute option if not present already
+
+        $client->getAttributeApi()->upsert('diameter3', [
+            'type'                   => 'pim_catalog_simpleselect',
+            'group'                  => 'design',
+            'sort_order'             => 1,
+            'labels'                 => [
+                'en_US' => 'Diameter',
+            ],
+        ]);
+
+        if($item['Diameter']){
+        $item['diameter3'] = $item['Diameter'];
+        }
+
         $supportedAttr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
@@ -192,15 +206,12 @@ class XlsxProductReader implements
                 array_push($supportedAttr, $key);
             }
         }
-        
+
         //cleans the supported attribute options
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
-                if($attr === 'test1'){
-                    $attrOption[$attr] = $item[$attr];
-                }
-                else if($attr === "Name"){
+                if($attr === "Name"){
                     $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
                 }
                 else{
@@ -252,7 +263,7 @@ class XlsxProductReader implements
 
         // creates the family with the filename and adds attributes to that family
         $client->getFamilyApi()->upsert($filenamecode, [
-            'attributes'             => array_merge($supportedAttr, ['product_info', 'description', 'test1']),
+            'attributes'             => array_merge($supportedAttr, ['product_info', 'description']),
             'attribute_requirements' => [
                 'ecommerce' => ['sku'],
                 'mobile' => ['sku'],
@@ -279,7 +290,7 @@ class XlsxProductReader implements
         }
         $item['values'] = $this->mediaPathTransformer
         ->transform($item['values'], $this->fileIterator->getDirectoryPath());
-
+        // $item['values']['diameter_test'][0]['data']['unit'] = 'MILLIMETER';
         return $item;
     }
 
