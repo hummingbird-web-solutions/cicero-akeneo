@@ -72,33 +72,25 @@ class XlsxProductReader implements
     * Sets the category and family name to the filename
     * Creates Attribute option if its not present by default 
     */
+
     public function read()
     {
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
 
-        $filename = basename($filePath, '.xlsx');
-        $filenamecode = strtolower($filename);
-        if(str_contains($filenamecode, " ")){
-            $filenamecode = str_replace(' - ', '_', $filenamecode);
-            $filenamecode = str_replace('-', '_', $filenamecode);
-            $filenamecode = str_replace(' ', '_', $filenamecode);
-        }
+        $mainCategory = $this->getMainCategory($filePath);
+        $mainCategoryCode = $this->getCategoryCode($mainCategory);
+
+        $filename = $this->getSubCategory($filePath);
+        $filenamecode = $this->getCategoryCode($filename);
 
         //using php api client to set categories, families, attributes and attribute option following its documentation and hardcoded the local pim url
         $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder('http://akeneo-pim.local/');
         $client = $clientBuilder->buildAuthenticatedByPassword('6_4ymevfr7meg4c00s0g8000wogg84s8owk0040cwgwo08gkc0k4', '2sszzurl4ke8c4cw40sk8888s8g0okwowg0g4w4kskkwkww4c0', 'admin_3451', '0542b65c6');
         
-        // set the category to filename
-        $client->getCategoryApi()->upsert($filenamecode, [
-            'parent' => 'master',
-            'labels' => [
-                'en_US' => $filename,
-                'fr_FR' => $filename,
-                'de_DE' => $filename,
-            ]
-        ]);
-
+        //creating or updating the category and subcategory
+        $this->upsertCategory($client, $mainCategory, $mainCategoryCode);
+        $this->upsertCategory($client, $filename, $filenamecode, $mainCategoryCode);
 
         if (null === $this->fileIterator) {
             $this->fileIterator = $this->fileIteratorFactory->create($filePath, $this->options);
@@ -131,27 +123,11 @@ class XlsxProductReader implements
         
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
-        // maps 3M ID with sku
-        if (isset($item['3M ID'])) {
-            $item['sku'] = $item['3M ID'];
-            unset($item['3M ID']);
-        }
-
-        // maps short description with Short_description-en_US-ecommerce'
-        if (isset($item['short_description'])){
-            $item['Short_description-en_US-ecommerce'] = $item['short_description'];
-            unset($item['short_description']);
-        }
-
-        // map description with marketplace description
-        if (isset($item['Marketplace Description'])){
-            $item['Description-en_US-ecommerce'] = $item['Marketplace Description'];
-            unset($item['Marketplace Description']);
-        }
-
-        // maps Marketplace Formal Name with name
-        $item['Name'] = $item['Marketplace Formal Name'];
-        unset($item['Marketplace Formal Name']);
+        //maps the file fields with akeneo attributes
+        $this->mapAttributes($item, '3M ID', 'sku');
+        $this->mapAttributes($item, 'short_description', 'Short_description-en_US-ecommerce');
+        $this->mapAttributes($item, 'Marketplace Description', 'Description-en_US-ecommerce');
+        $this->mapAttributes($item, 'Marketplace Formal Name', 'Name');
 
         //to remove duplicate description
         if($item['Enhanced Extended Description']){
@@ -173,11 +149,6 @@ class XlsxProductReader implements
                 unset($item[$attribute]);
         }
 
-        // $item['diameter_test'] = $item['Diameter (Metric)'];
-        // $item['diameter'] = $item['Diameter (Metric)'];
-        // $item['diameter_test'] = $item['Diameter Metric Unit'];
-        //creates the attribute option if not present already
-
         $client->getAttributeApi()->upsert('diameter3', [
             'type'                   => 'pim_catalog_simpleselect',
             'group'                  => 'design',
@@ -191,12 +162,33 @@ class XlsxProductReader implements
         $item['diameter3'] = $item['Diameter'];
         }
 
+        $client->getAttributeApi()->upsert('image', [
+            'type'                   => 'pim_catalog_image',
+            'group'                  => 'medias',
+            'allowed_extensions'     => ['jpg' ,'jpeg', 'png', 'tiff'],
+            'sort_order'             => 1,
+            'labels'                 => [
+                'en_US' => 'Image',
+            ],
+        ]);
+
+        if($item['sku'] = '70020233386'){
+            $item['image'] = '../nokzmbkfdmeonuer90qr.tiff';
+        }
+
+        //unit mapping
+        $unit = ['Inch' => 'in',];
+
+        //creates the attribute option if not present already
         $supportedAttr = [];
         foreach($item as $key => $value){
             $attributes = $this->attributeRepository->findBy(['code' => $key]);
             if(!empty($attributes)) {
                 if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
                     $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $value);
+                    if($key === 'diameter3'){
+                        $value .= " ".$unit[$item['Diameter Unit']];
+                    }
                     $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
                         'labels'     => [
                             'en_US' => $value,
@@ -211,7 +203,10 @@ class XlsxProductReader implements
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
-                if($attr === "Name"){
+                if($attr === "image"){
+                    $attrOption[$attr] = $item[$attr];
+                }
+                else if($attr === "Name"){
                     $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
                 }
                 else{
@@ -255,7 +250,7 @@ class XlsxProductReader implements
                 }
             }
         }
-        
+
         // sets the attributes
         foreach($supportedAttr as $attr){
             $item[$attr] = $attrOption[$attr]; 
@@ -290,8 +285,50 @@ class XlsxProductReader implements
         }
         $item['values'] = $this->mediaPathTransformer
         ->transform($item['values'], $this->fileIterator->getDirectoryPath());
-        // $item['values']['diameter_test'][0]['data']['unit'] = 'MILLIMETER';
+
         return $item;
+    }
+
+    private function mapAttributes(&$item, $fileAttribute, $akeneoAttribute){
+        if (isset($item[$fileAttribute])) {
+            $item[$akeneoAttribute] = $item[$fileAttribute];
+            unset($item[$fileAttribute]);
+        }
+    }
+
+    private function upsertCategory($client, $label, $code, $parent='master'){
+        $client->getCategoryApi()->upsert($code, [
+            'parent' => $parent,
+            'labels' => [
+                'en_US' => $label,
+                'fr_FR' => $label,
+                'de_DE' => $label,
+            ]
+        ]);
+    }
+
+
+    private function getMainCategory($filePath){
+        $filePathArr = explode('/', $filePath);
+        if(sizeof($filePathArr)<3){
+            echo "unable to convert the filepath to category structure";
+            die;
+        }
+        return implode(array_slice($filePathArr, -2, 1));
+    }
+
+    private function getCategoryCode($categoryName){
+        $categoryNameCode = strtolower($categoryName);
+        if(str_contains($categoryNameCode, " ")){
+            $categoryNameCode = str_replace(' - ', '_', $categoryNameCode);
+            $categoryNameCode = str_replace('-', '_', $categoryNameCode);
+            $categoryNameCode = str_replace(' ', '_', $categoryNameCode);
+        }
+        return $categoryNameCode;
+    }
+
+    private function getSubCategory($filePath){
+        return basename($filePath, '.xlsx');
     }
 
     /**
