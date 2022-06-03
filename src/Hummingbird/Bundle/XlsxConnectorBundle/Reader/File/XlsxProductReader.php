@@ -13,6 +13,7 @@ use Akeneo\Tool\Component\Connector\ArrayConverter\ArrayConverterInterface;
 use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
+use Doctrine\DBAL\Schema\Identifier;
 // use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
 use Hummingbird\Bundle\XlsxConnectorBundle\Reader\File\MediaPathTransformer;
 
@@ -129,6 +130,8 @@ class XlsxProductReader implements
         $this->mapAttributes($item, 'Marketplace Description', 'Description-en_US-ecommerce');
         $this->mapAttributes($item, 'Marketplace Formal Name', 'Name');
 
+        $this->createGroupedProduct($item, $client, $filenamecode);
+
         //to remove duplicate description
         if($item['Enhanced Extended Description']){
             unset($item['Enhanced Extended Description']);
@@ -158,9 +161,9 @@ class XlsxProductReader implements
             ],
         ]);
 
-        if($item['Diameter']){
-        $item['diameter3'] = $item['Diameter'];
-        }
+        // if($item['Diameter']){
+        // $item['diameter3'] = $item['Diameter'];
+        // }
 
         $client->getAttributeApi()->upsert('image', [
             'type'                   => 'pim_catalog_image',
@@ -172,9 +175,16 @@ class XlsxProductReader implements
             ],
         ]);
 
-        if($item['sku'] = '70020233386'){
-            $item['image'] = '../nokzmbkfdmeonuer90qr.tiff';
-        }
+        $client->getAssociationTypeApi()->upsert('discpad_association', [
+            'labels' => [
+                'en_US' => 'Disc Pad Face Plates',
+            ],
+            'is_quantified' => true
+        ]);
+
+        // if($item['sku'] = '70020233386'){
+        //     $item['image'] = '../nokzmbkfdmeonuer90qr.tiff';
+        // }
 
         //unit mapping
         $unit = ['Inch' => 'in',];
@@ -289,6 +299,59 @@ class XlsxProductReader implements
         return $item;
     }
 
+    private function createGroupedProduct(&$item, $client, $categoryCode){
+        $familyName = explode(',', $item['Name'])[0];
+        $familyNameCode = $this->getFamilyCode($familyName)."_group";
+        
+        $client->getFamilyApi()->upsert($familyNameCode, [
+            'attributes'             => ['sku'],
+            'attribute_requirements' => [
+                'ecommerce' => ['sku'],
+                'mobile' => ['sku'],
+                'print' =>  ['sku'],
+            ],
+            'labels'                 => [
+                'en_US' => $familyName,
+                'fr_FR' => $familyName,
+                'de_DE' => $familyName,
+            ]
+        ]);
+        
+        $associationCode = $familyNameCode;
+        // check that the length is within sql column identifier character limit
+        if(strlen($familyNameCode)>55){
+            $associationCode = substr($familyNameCode, -55);
+        }
+        $client->getAssociationTypeApi()->upsert($associationCode, [
+            'labels' => [
+                'en_US' => $familyName,
+            ],
+            'is_quantified' => true
+        ]);
+        
+        try{
+            $product = $client->getProductApi()->get($associationCode);
+            $productList = $product['quantified_associations'][$associationCode]['products'];
+            array_push($productList, ["identifier" => $item['sku'], "quantity" => 2]);
+        }
+        catch(\Exception $e){
+            $productList = [["identifier" => $item['sku'], "quantity" => 2]];
+        }
+
+        //association code is used instead of familycode due to the sku character limit in magento
+        $client->getProductApi()->upsert($associationCode, [
+            "identifier"=> $associationCode,
+            "enabled" => true,
+            'family' => $familyNameCode,
+            'categories' => [$categoryCode],
+            "quantified_associations"=> [
+                $associationCode=> [
+                    "products"=> $productList
+                ]
+            ]
+        ]);
+    }
+
     private function mapAttributes(&$item, $fileAttribute, $akeneoAttribute){
         if (isset($item[$fileAttribute])) {
             $item[$akeneoAttribute] = $item[$fileAttribute];
@@ -325,6 +388,17 @@ class XlsxProductReader implements
             $categoryNameCode = str_replace(' ', '_', $categoryNameCode);
         }
         return $categoryNameCode;
+    }
+
+    private function getFamilyCode($familyName){
+        $familyNameCode = preg_replace("/[^a-zA-Z0-9 ]/", "", $familyName);
+        $familyNameCode = strtolower($familyNameCode);
+        if(str_contains($familyNameCode, " ")){
+            $familyNameCode = str_replace(' - ', '_', $familyNameCode);
+            $familyNameCode = str_replace('-', '_', $familyNameCode);
+            $familyNameCode = str_replace(' ', '_', $familyNameCode);
+        }
+        return $familyNameCode;
     }
 
     private function getSubCategory($filePath){
