@@ -1,5 +1,0 @@
-suites:
-    default:
-        namespace: Akeneo\Tool\Bundle\BatchBundle
-        psr4_prefix: Akeneo\Tool\Bundle\BatchBundle
-        src_path: .
