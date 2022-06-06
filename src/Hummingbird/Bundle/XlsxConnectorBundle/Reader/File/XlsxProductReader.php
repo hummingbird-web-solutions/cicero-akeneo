@@ -1,4 +1,4 @@
-php
+<?php
 
 namespace Hummingbird\Bundle\XlsxConnectorBundle\Reader\File;
 
@@ -128,10 +128,10 @@ class XlsxProductReader implements
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
         //maps the file fields with akeneo attributes
-        $this->mapAttributes($item, 'Sku', 'sku');
+        $this->mapAttributes($item, '3M ID', 'sku');
         $this->mapAttributes($item, 'short_description', 'Short_description-en_US-ecommerce');
         $this->mapAttributes($item, 'Marketplace Description', 'Description-en_US-ecommerce');
-        $this->mapAttributes($item, 'Descriptions', 'Name');
+        $this->mapAttributes($item, 'Marketplace Formal Name', 'Name');
 
         $this->createGroupedProduct($item, $client, $filenamecode);
 
@@ -190,7 +190,7 @@ class XlsxProductReader implements
             if(!empty($attributes)) {
                 if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
                     $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $value);
-                    if($key === 'Diameter'){
+                    if($key === 'Diameter' && array_key_exists('Diameter Unit', $item)){
                         $value .= " ".$unit[$item['Diameter Unit']];
                     }
 
@@ -344,6 +344,15 @@ class XlsxProductReader implements
             "quantified_associations"=> [
                 $associationCode=> [
                     "products"=> $productList
+                ]
+            ],
+            "values" => [
+                "name" => [
+                    [
+                        "data" => $familyName,
+                        "locale" => null,
+                        "scope" => null,    
+                    ]
                 ]
             ]
         ]);
