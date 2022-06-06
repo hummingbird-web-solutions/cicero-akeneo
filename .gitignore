@@ -17,7 +17,7 @@ var/*
 var/uploads/*
 var/uploads/product/*
 var/file_storage/*
-vendor
+vendor/*
 bin/symfony_requirements
 composer.phar
 /cov

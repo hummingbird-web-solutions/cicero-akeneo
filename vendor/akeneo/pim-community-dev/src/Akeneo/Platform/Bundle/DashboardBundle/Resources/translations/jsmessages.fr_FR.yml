@@ -1,6 +1,0 @@
-pim_dashboard:
-  widget:
-    completeness:
-      load_more: 'Voir plus...'
-pim_title:
-  pim_dashboard_index: Tableau de bord

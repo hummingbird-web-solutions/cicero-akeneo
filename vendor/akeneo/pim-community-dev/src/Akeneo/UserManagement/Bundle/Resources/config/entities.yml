@@ -1,4 +1,0 @@
-parameters:
-    pim_user.entity.role.class:     Akeneo\UserManagement\Component\Model\Role
-    pim_user.entity.group.class:    Akeneo\UserManagement\Component\Model\Group
-    pim_user.entity.user.class:     Akeneo\UserManagement\Component\Model\User

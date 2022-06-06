@@ -16,6 +16,5 @@ services:
         arguments:
             -
                 hb_custom_xlsx_product_import: pim-job-instance-xlsx-product-import
-                # xlsx_product_import: pim-job-instance-csv-base-import
         tags:
             - { name: pim_enrich.provider.form }

@@ -182,6 +182,7 @@ class XlsxProductReader implements
 
         //unit mapping
         $unit = ['Inch' => 'in', 'mm' => 'mm',];
+
         //creates the attribute option if not present already
         $supportedAttr = [];
         foreach($item as $key => $value){
@@ -192,6 +193,7 @@ class XlsxProductReader implements
                     if($key === 'Diameter' && array_key_exists('Diameter Unit', $item)){
                         $value .= " ".$unit[$item['Diameter Unit']];
                     }
+
                     $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
                         'labels'     => [
                             'en_US' => $value,
@@ -254,9 +256,11 @@ class XlsxProductReader implements
             }
         }
 
+
         // sets the attributes
         foreach($supportedAttr as $attr){
             $item[$attr] = $attrOption[$attr];
+
         }
 
         // creates the family with the filename and adds attributes to that family

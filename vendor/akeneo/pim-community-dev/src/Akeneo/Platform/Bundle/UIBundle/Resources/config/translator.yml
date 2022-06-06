@@ -1,7 +1,0 @@
-services:
-    pim_localization.translator:
-        class: Akeneo\Platform\Bundle\UIBundle\Translator\TranslatorDecorator
-        decorates: translator
-        decoration_inner_name: base_translator
-        arguments:
-            - '@base_translator'
