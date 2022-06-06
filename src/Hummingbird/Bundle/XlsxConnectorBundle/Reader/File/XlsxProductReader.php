@@ -1,4 +1,4 @@
-<?php
+php
 
 namespace Hummingbird\Bundle\XlsxConnectorBundle\Reader\File;
 
@@ -13,9 +13,7 @@ use Akeneo\Tool\Component\Connector\ArrayConverter\ArrayConverterInterface;
 use Akeneo\Tool\Component\Connector\Exception\DataArrayConversionException;
 use Akeneo\Tool\Component\Connector\Exception\InvalidItemFromViolationsException;
 use Akeneo\Pim\Structure\Component\Repository\AttributeRepositoryInterface;
-use Doctrine\DBAL\Schema\Identifier;
-// use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
-use Hummingbird\Bundle\XlsxConnectorBundle\Reader\File\MediaPathTransformer;
+use Akeneo\Tool\Component\Connector\Reader\File\MediaPathTransformer;
 
 class XlsxProductReader implements
     ItemReaderInterface,
@@ -41,6 +39,12 @@ class XlsxProductReader implements
     protected $options;
 
     protected $mediaPathTransformer;
+
+    private $url = 'http://pim.humcommerce.com/';
+    private $clientId = '5_1aro719g4qsk88s8wc0wokgwkkw0ccwgss0s4o0cc44wc08gc0';
+    private $clientSecret = '3fgcqr8nqxa80g8ok4wkw0c0o4c484k8wg88ok4g40gcw8ksos';
+    private $userName = 'php_api_client_3942';
+    private $password = '291c80ae6';
 
     /**
      * @param ArrayConverterInterface $converter
@@ -73,7 +77,6 @@ class XlsxProductReader implements
     * Sets the category and family name to the filename
     * Creates Attribute option if its not present by default 
     */
-
     public function read()
     {
         $jobParameters = $this->stepExecution->getJobParameters();
@@ -86,9 +89,9 @@ class XlsxProductReader implements
         $filenamecode = $this->getCategoryCode($filename);
 
         //using php api client to set categories, families, attributes and attribute option following its documentation and hardcoded the local pim url
-        $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder('http://akeneo-pim.local/');
-        $client = $clientBuilder->buildAuthenticatedByPassword('6_4ymevfr7meg4c00s0g8000wogg84s8owk0040cwgwo08gkc0k4', '2sszzurl4ke8c4cw40sk8888s8g0okwowg0g4w4kskkwkww4c0', 'admin_3451', '0542b65c6');
-        
+        $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder($this->url);
+        $client = $clientBuilder->buildAuthenticatedByPassword($this->clientId, $this->clientSecret, $this->userName, $this->password);
+
         //creating or updating the category and subcategory
         $this->upsertCategory($client, $mainCategory, $mainCategoryCode);
         $this->upsertCategory($client, $filename, $filenamecode, $mainCategoryCode);
@@ -99,36 +102,36 @@ class XlsxProductReader implements
         }
 
         $this->fileIterator->next();
-        
+
         if ($this->fileIterator->valid() && null !== $this->stepExecution) {
             $this->stepExecution->incrementSummaryInfo('item_position');
         }
-        
+
         $data = $this->fileIterator->current();
-        
+
         if (null === $data) {
             return null;
         }
-        
+
         $headers = $this->fileIterator->getHeaders();
         $countHeaders = count($headers);
         $countData = count($data);
-        
+
         $this->checkColumnNumber($countHeaders, $countData, $data, $filePath);
-        
+
         if ($countHeaders > $countData) {
             $missingValuesCount = $countHeaders - $countData;
             $missingValues = array_fill(0, $missingValuesCount, '');
             $data = array_merge($data, $missingValues);
         }
-        
+
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
         //maps the file fields with akeneo attributes
-        $this->mapAttributes($item, '3M ID', 'sku');
+        $this->mapAttributes($item, 'Sku', 'sku');
         $this->mapAttributes($item, 'short_description', 'Short_description-en_US-ecommerce');
         $this->mapAttributes($item, 'Marketplace Description', 'Description-en_US-ecommerce');
-        $this->mapAttributes($item, 'Marketplace Formal Name', 'Name');
+        $this->mapAttributes($item, 'Descriptions', 'Name');
 
         $this->createGroupedProduct($item, $client, $filenamecode);
 
@@ -152,7 +155,8 @@ class XlsxProductReader implements
                 unset($item[$attribute]);
         }
 
-        $client->getAttributeApi()->upsert('diameter3', [
+        //creating diameter attribute
+        $client->getAttributeApi()->upsert('diameter', [
             'type'                   => 'pim_catalog_simpleselect',
             'group'                  => 'design',
             'sort_order'             => 1,
@@ -161,10 +165,7 @@ class XlsxProductReader implements
             ],
         ]);
 
-        // if($item['Diameter']){
-        // $item['diameter3'] = $item['Diameter'];
-        // }
-
+        //creating image attribute
         $client->getAttributeApi()->upsert('image', [
             'type'                   => 'pim_catalog_image',
             'group'                  => 'medias',
@@ -175,20 +176,12 @@ class XlsxProductReader implements
             ],
         ]);
 
-        $client->getAssociationTypeApi()->upsert('discpad_association', [
-            'labels' => [
-                'en_US' => 'Disc Pad Face Plates',
-            ],
-            'is_quantified' => true
-        ]);
-
-        // if($item['sku'] = '70020233386'){
-        //     $item['image'] = '../nokzmbkfdmeonuer90qr.tiff';
-        // }
+        if($item['sku'] === '70020233386'){
+            $item['image'] = '7035632bd93aa85e39297a278d7ca384f3a72522.jpg';
+        }
 
         //unit mapping
-        $unit = ['Inch' => 'in',];
-
+        $unit = ['Inch' => 'in', 'mm' => 'mm',];
         //creates the attribute option if not present already
         $supportedAttr = [];
         foreach($item as $key => $value){
@@ -196,7 +189,7 @@ class XlsxProductReader implements
             if(!empty($attributes)) {
                 if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
                     $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $value);
-                    if($key === 'diameter3'){
+                    if($key === 'Diameter'){
                         $value .= " ".$unit[$item['Diameter Unit']];
                     }
                     $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
@@ -241,7 +234,7 @@ class XlsxProductReader implements
         $descString = "";
         foreach($item as $key => $value){
             if($key !== 'Description-en_US-ecommerce' && $key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
-                if($key ==='Name'||str_contains($key, 'Image')){
+                if($key ==='Name'||str_contains($key, 'Image')||str_contains($key, 'image')){
                     unset($item[$key]);
                 }
                 else{
@@ -254,7 +247,7 @@ class XlsxProductReader implements
                         $productInfo = $productInfo . "<tr><th>Short Description</th><td>" . $descString . '</td></tr>';
                         $descString = "";
                     }
-                    $info = "<tr><th>".$key ."</th>" . "<td>".$value."</td></tr>";
+                    $info = "<tr><th>".$key."</th>" . "<td>".$value."</td></tr>";
                     $productInfo = $productInfo . $info;
                     unset($item[$key]);
                 }
@@ -263,7 +256,7 @@ class XlsxProductReader implements
 
         // sets the attributes
         foreach($supportedAttr as $attr){
-            $item[$attr] = $attrOption[$attr]; 
+            $item[$attr] = $attrOption[$attr];
         }
 
         // creates the family with the filename and adds attributes to that family
@@ -289,7 +282,7 @@ class XlsxProductReader implements
         } catch (DataArrayConversionException $e) {
             $this->skipItemFromConversionException($item, $e);
         }
-        
+
         if (!is_array($item) || !isset($item['values'])) {
             return $item;
         }
@@ -370,7 +363,6 @@ class XlsxProductReader implements
         ]);
     }
 
-
     private function getMainCategory($filePath){
         $filePathArr = explode('/', $filePath);
         if(sizeof($filePathArr)<3){
@@ -386,6 +378,7 @@ class XlsxProductReader implements
             $categoryNameCode = str_replace(' - ', '_', $categoryNameCode);
             $categoryNameCode = str_replace('-', '_', $categoryNameCode);
             $categoryNameCode = str_replace(' ', '_', $categoryNameCode);
+            $categoryNameCode = str_replace('&', 'and', $categoryNameCode);
         }
         return $categoryNameCode;
     }
