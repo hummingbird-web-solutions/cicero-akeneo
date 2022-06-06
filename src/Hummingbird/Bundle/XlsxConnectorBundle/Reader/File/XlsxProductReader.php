@@ -1,4 +1,4 @@
-<?php
+php
 
 namespace Hummingbird\Bundle\XlsxConnectorBundle\Reader\File;
 
@@ -40,6 +40,12 @@ class XlsxProductReader implements
 
     protected $mediaPathTransformer;
 
+    private $url = 'http://pim.humcommerce.com/';
+    private $clientId = '5_1aro719g4qsk88s8wc0wokgwkkw0ccwgss0s4o0cc44wc08gc0';
+    private $clientSecret = '3fgcqr8nqxa80g8ok4wkw0c0o4c484k8wg88ok4g40gcw8ksos';
+    private $userName = 'php_api_client_3942';
+    private $password = '291c80ae6';
+
     /**
      * @param ArrayConverterInterface $converter
      */
@@ -76,28 +82,19 @@ class XlsxProductReader implements
         $jobParameters = $this->stepExecution->getJobParameters();
         $filePath = $jobParameters->get('filePath');
 
-        $filename = basename($filePath, '.xlsx');
-        $filenamecode = strtolower($filename);
-        if(str_contains($filenamecode, " ")){
-            $filenamecode = str_replace(' - ', '_', $filenamecode);
-            $filenamecode = str_replace('-', '_', $filenamecode);
-            $filenamecode = str_replace(' ', '_', $filenamecode);
-        }
+        $mainCategory = $this->getMainCategory($filePath);
+        $mainCategoryCode = $this->getCategoryCode($mainCategory);
+
+        $filename = $this->getSubCategory($filePath);
+        $filenamecode = $this->getCategoryCode($filename);
 
         //using php api client to set categories, families, attributes and attribute option following its documentation and hardcoded the local pim url
-        $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder('http://akeneo-pim.local/');
-        $client = $clientBuilder->buildAuthenticatedByPassword('6_4ymevfr7meg4c00s0g8000wogg84s8owk0040cwgwo08gkc0k4', '2sszzurl4ke8c4cw40sk8888s8g0okwowg0g4w4kskkwkww4c0', 'admin_3451', '0542b65c6');
-        
-        // set the category to filename
-        $client->getCategoryApi()->upsert($filenamecode, [
-            'parent' => 'master',
-            'labels' => [
-                'en_US' => $filename,
-                'fr_FR' => $filename,
-                'de_DE' => $filename,
-            ]
-        ]);
+        $clientBuilder = new \Akeneo\Pim\ApiClient\AkeneoPimClientBuilder($this->url);
+        $client = $clientBuilder->buildAuthenticatedByPassword($this->clientId, $this->clientSecret, $this->userName, $this->password);
 
+        //creating or updating the category and subcategory
+        $this->upsertCategory($client, $mainCategory, $mainCategoryCode);
+        $this->upsertCategory($client, $filename, $filenamecode, $mainCategoryCode);
 
         if (null === $this->fileIterator) {
             $this->fileIterator = $this->fileIteratorFactory->create($filePath, $this->options);
@@ -105,52 +102,38 @@ class XlsxProductReader implements
         }
 
         $this->fileIterator->next();
-        
+
         if ($this->fileIterator->valid() && null !== $this->stepExecution) {
             $this->stepExecution->incrementSummaryInfo('item_position');
         }
-        
+
         $data = $this->fileIterator->current();
-        
+
         if (null === $data) {
             return null;
         }
-        
+
         $headers = $this->fileIterator->getHeaders();
         $countHeaders = count($headers);
         $countData = count($data);
-        
+
         $this->checkColumnNumber($countHeaders, $countData, $data, $filePath);
-        
+
         if ($countHeaders > $countData) {
             $missingValuesCount = $countHeaders - $countData;
             $missingValues = array_fill(0, $missingValuesCount, '');
             $data = array_merge($data, $missingValues);
         }
-        
+
         $item = array_combine($this->fileIterator->getHeaders(), $data);
 
-        // maps 3M ID with sku
-        if (isset($item['3M ID'])) {
-            $item['sku'] = $item['3M ID'];
-            unset($item['3M ID']);
-        }
+        //maps the file fields with akeneo attributes
+        $this->mapAttributes($item, 'Sku', 'sku');
+        $this->mapAttributes($item, 'short_description', 'Short_description-en_US-ecommerce');
+        $this->mapAttributes($item, 'Marketplace Description', 'Description-en_US-ecommerce');
+        $this->mapAttributes($item, 'Descriptions', 'Name');
 
-        // maps short description with Short_description-en_US-ecommerce'
-        if (isset($item['short_description'])){
-            $item['Short_description-en_US-ecommerce'] = $item['short_description'];
-            unset($item['short_description']);
-        }
-
-        // map description with marketplace description
-        if (isset($item['Marketplace Description'])){
-            $item['Description-en_US-ecommerce'] = $item['Marketplace Description'];
-            unset($item['Marketplace Description']);
-        }
-
-        // maps Marketplace Formal Name with name
-        $item['Name'] = $item['Marketplace Formal Name'];
-        unset($item['Marketplace Formal Name']);
+        $this->createGroupedProduct($item, $client, $filenamecode);
 
         //to remove duplicate description
         if($item['Enhanced Extended Description']){
@@ -172,6 +155,34 @@ class XlsxProductReader implements
                 unset($item[$attribute]);
         }
 
+        //creating diameter attribute
+        $client->getAttributeApi()->upsert('diameter', [
+            'type'                   => 'pim_catalog_simpleselect',
+            'group'                  => 'design',
+            'sort_order'             => 1,
+            'labels'                 => [
+                'en_US' => 'Diameter',
+            ],
+        ]);
+
+        //creating image attribute
+        $client->getAttributeApi()->upsert('image', [
+            'type'                   => 'pim_catalog_image',
+            'group'                  => 'medias',
+            'allowed_extensions'     => ['jpg' ,'jpeg', 'png', 'tiff'],
+            'sort_order'             => 1,
+            'labels'                 => [
+                'en_US' => 'Image',
+            ],
+        ]);
+
+        if($item['sku'] === '70020233386'){
+            $item['image'] = '7035632bd93aa85e39297a278d7ca384f3a72522.jpg';
+        }
+
+        //unit mapping
+        $unit = ['Inch' => 'in', 'mm' => 'mm',];
+
         //creates the attribute option if not present already
         $supportedAttr = [];
         foreach($item as $key => $value){
@@ -179,6 +190,10 @@ class XlsxProductReader implements
             if(!empty($attributes)) {
                 if($attributes[0]->getType() === 'pim_catalog_simpleselect') {
                     $attr_modified = preg_replace("/[^a-zA-Z0-9]/", "", $value);
+                    if($key === 'Diameter'){
+                        $value .= " ".$unit[$item['Diameter Unit']];
+                    }
+
                     $client->getAttributeOptionApi()->upsert(strtolower($key), $attr_modified, [
                         'labels'     => [
                             'en_US' => $value,
@@ -193,7 +208,10 @@ class XlsxProductReader implements
         $attrOption = [];
         foreach($supportedAttr as $attr){
             if (isset($item[$attr])){
-                if($attr === "Name"){
+                if($attr === "image"){
+                    $attrOption[$attr] = $item[$attr];
+                }
+                else if($attr === "Name"){
                     $attrOption[$attr] = preg_replace("/[^a-zA-Z0-9 ]/", "", $item[$attr]);
                 }
                 else{
@@ -218,7 +236,7 @@ class XlsxProductReader implements
         $descString = "";
         foreach($item as $key => $value){
             if($key !== 'Description-en_US-ecommerce' && $key !== 'sku' && $key !== 'Short_description-en_US-ecommerce'){
-                if($key ==='Name'||str_contains($key, 'Image')){
+                if($key ==='Name'||str_contains($key, 'Image')||str_contains($key, 'image')){
                     unset($item[$key]);
                 }
                 else{
@@ -231,16 +249,18 @@ class XlsxProductReader implements
                         $productInfo = $productInfo . "<tr><th>Short Description</th><td>" . $descString . '</td></tr>';
                         $descString = "";
                     }
-                    $info = "<tr><th>".$key ."</th>" . "<td>".$value."</td></tr>";
+                    $info = "<tr><th>".$key."</th>" . "<td>".$value."</td></tr>";
                     $productInfo = $productInfo . $info;
                     unset($item[$key]);
                 }
             }
         }
-        
+
+
         // sets the attributes
         foreach($supportedAttr as $attr){
-            $item[$attr] = $attrOption[$attr]; 
+            $item[$attr] = $attrOption[$attr];
+
         }
 
         // creates the family with the filename and adds attributes to that family
@@ -272,8 +292,114 @@ class XlsxProductReader implements
         }
         $item['values'] = $this->mediaPathTransformer
         ->transform($item['values'], $this->fileIterator->getDirectoryPath());
- 
+
         return $item;
+    }
+
+    private function createGroupedProduct(&$item, $client, $categoryCode){
+        $familyName = explode(',', $item['Name'])[0];
+        $familyNameCode = $this->getFamilyCode($familyName)."_group";
+        
+        $client->getFamilyApi()->upsert($familyNameCode, [
+            'attributes'             => ['sku'],
+            'attribute_requirements' => [
+                'ecommerce' => ['sku'],
+                'mobile' => ['sku'],
+                'print' =>  ['sku'],
+            ],
+            'labels'                 => [
+                'en_US' => $familyName,
+                'fr_FR' => $familyName,
+                'de_DE' => $familyName,
+            ]
+        ]);
+        
+        $associationCode = $familyNameCode;
+        // check that the length is within sql column identifier character limit
+        if(strlen($familyNameCode)>55){
+            $associationCode = substr($familyNameCode, -55);
+        }
+        $client->getAssociationTypeApi()->upsert($associationCode, [
+            'labels' => [
+                'en_US' => $familyName,
+            ],
+            'is_quantified' => true
+        ]);
+        
+        try{
+            $product = $client->getProductApi()->get($associationCode);
+            $productList = $product['quantified_associations'][$associationCode]['products'];
+            array_push($productList, ["identifier" => $item['sku'], "quantity" => 2]);
+        }
+        catch(\Exception $e){
+            $productList = [["identifier" => $item['sku'], "quantity" => 2]];
+        }
+
+        //association code is used instead of familycode due to the sku character limit in magento
+        $client->getProductApi()->upsert($associationCode, [
+            "identifier"=> $associationCode,
+            "enabled" => true,
+            'family' => $familyNameCode,
+            'categories' => [$categoryCode],
+            "quantified_associations"=> [
+                $associationCode=> [
+                    "products"=> $productList
+                ]
+            ]
+        ]);
+    }
+
+    private function mapAttributes(&$item, $fileAttribute, $akeneoAttribute){
+        if (isset($item[$fileAttribute])) {
+            $item[$akeneoAttribute] = $item[$fileAttribute];
+            unset($item[$fileAttribute]);
+        }
+    }
+
+    private function upsertCategory($client, $label, $code, $parent='master'){
+        $client->getCategoryApi()->upsert($code, [
+            'parent' => $parent,
+            'labels' => [
+                'en_US' => $label,
+                'fr_FR' => $label,
+                'de_DE' => $label,
+            ]
+        ]);
+    }
+
+    private function getMainCategory($filePath){
+        $filePathArr = explode('/', $filePath);
+        if(sizeof($filePathArr)<3){
+            echo "unable to convert the filepath to category structure";
+            die;
+        }
+        return implode(array_slice($filePathArr, -2, 1));
+    }
+
+    private function getCategoryCode($categoryName){
+        $categoryNameCode = strtolower($categoryName);
+        if(str_contains($categoryNameCode, " ")){
+            $categoryNameCode = str_replace(' - ', '_', $categoryNameCode);
+            $categoryNameCode = str_replace('-', '_', $categoryNameCode);
+            $categoryNameCode = str_replace(' ', '_', $categoryNameCode);
+            $categoryNameCode = str_replace('&', 'and', $categoryNameCode);
+        }
+        return $categoryNameCode;
+    }
+
+    private function getFamilyCode($familyName){
+        $familyNameCode = preg_replace("/[^a-zA-Z0-9 ]/", "", $familyName);
+        $familyNameCode = strtolower($familyNameCode);
+        if(str_contains($familyNameCode, " ")){
+            $familyNameCode = str_replace(' - ', '_', $familyNameCode);
+            $familyNameCode = str_replace('-', '_', $familyNameCode);
+            $familyNameCode = str_replace(' ', '_', $familyNameCode);
+        }
+        return $familyNameCode;
+    }
+
+    private function getSubCategory($filePath){
+        return basename($filePath, '.xlsx');
     }
 
     /**
